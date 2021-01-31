@@ -70,9 +70,10 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    final readyToSolve = countSelected() == sourceRequired && targetNumber >= 100;
+    final readyToSolve =
+        countSelected() == sourceRequired && targetNumber >= 100;
     final clearable = countSelected() > 0 || targetNumber > 0;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -123,6 +124,12 @@ class _MainPageState extends State<MainPage> {
                   child: Text('Solve', style: buttonStyle),
                 ),
               ],
+            ),
+            Expanded(
+              // don't understand yet how this works, but needed to stop squishing everything else
+              child: ListView(
+                children: resultTiles(),
+              ),
             ),
           ],
         ),
@@ -177,4 +184,7 @@ class _MainPageState extends State<MainPage> {
                 .toList()));
   }
 
+  List<Widget> resultTiles() {
+    return <Widget>[];
+  }
 }
