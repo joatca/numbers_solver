@@ -1,5 +1,6 @@
 /*
-Numbers Solver - solve the Numbers game used in several long-running European game shows
+This file is part of Numbers Solver - solve the Numbers game used in several
+long-running European game shows
 
 Copyright (C) 2021 Fraser McCrossan
 
