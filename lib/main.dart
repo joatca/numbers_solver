@@ -17,7 +17,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -56,11 +55,24 @@ class _MainPageState extends State<MainPage> {
   var sourceSelected = sourceNumbers.map((e) => false).toList(growable: false);
   static const sourceRequired = 6;
   static const maxTargetLength = 3;
-  var target_number = 0;
+  var targetNumber = 0;
+  TextEditingController targetTextController = TextEditingController();
+  static const targetWidth = 120.0;
+  static final sourceStyle = TextStyle(
+    fontSize: 16,
+  );
+  static final targetStyle = TextStyle(
+    fontSize: 20,
+  );
+  static final buttonStyle = TextStyle(
+    fontSize: 24,
+  );
 
   @override
   Widget build(BuildContext context) {
-    final remaining = sourceRequired - countSelected();
+    final readyToSolve = countSelected() == sourceRequired && targetNumber >= 100;
+    final clearable = countSelected() > 0 || targetNumber > 0;
+    
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -69,38 +81,61 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            Text(remaining > 1
-                ? 'Select ${remaining} more puzzle numbers:'
-                : (remaining == 1
-                    ? 'Select 1 more puzzle number'
-                    : 'Puzzle numbers OK')),
             numberRow(0, smallNumbers.length),
             numberRow(smallNumbers.length, smallNumbers.length),
             numberRow(smallNumbers.length * 2, bigNumbers.length),
-            Text(target_number == 0
-                ? 'Enter 3 digits for target number:'
-                : (target_number < 10
-                    ? 'Enter 2 digits:'
-                    : (target_number < 100
-                        ? 'Enter 1 digit:'
-                        : 'Target number OK'))),
-            TextField(
-                maxLength: maxTargetLength,
-                maxLines: 1,
-                keyboardType: TextInputType.number,
-                onChanged: (String val) async {
-                  setState(() {
-                    if (val.length > 0) {
-                      target_number = int.parse(val);
-                    } else {
-                      target_number = 0;
-                    }
-                  });
-                })
+            Container(
+                width: targetWidth,
+                child: TextField(
+                    maxLength: maxTargetLength,
+                    style: targetStyle,
+                    maxLines: 1,
+                    showCursor: false,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    controller: targetTextController,
+                    decoration: InputDecoration(
+                      hintText: 'Target',
+                      border: const OutlineInputBorder(),
+                      counterText: '', // don't show the counter'
+                    ),
+                    onChanged: (String val) async {
+                      setState(() {
+                        if (val.length > 0) {
+                          targetNumber = int.parse(val);
+                        } else {
+                          targetNumber = 0;
+                        }
+                      });
+                    })),
+            ButtonBar(
+              alignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: clearable ? resetPuzzle : null,
+                  child: Text(
+                    'Reset',
+                    style: buttonStyle,
+                  ),
+                ),
+                TextButton(
+                  onPressed: readyToSolve ? () {} : null,
+                  child: Text('Solve', style: buttonStyle),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  void resetPuzzle() {
+    setState(() {
+      sourceSelected.fillRange(0, sourceSelected.length, false);
+      targetNumber = 0;
+      targetTextController.clear();
+    });
   }
 
   void toggleNumber(int n) {
@@ -131,11 +166,15 @@ class _MainPageState extends State<MainPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: Iterable.generate(length, (i) => i + offset)
                 .map((n) => ActionChip(
-                      label: Text(sourceNumbers[n].toString()),
+                      label: Text(
+                        sourceNumbers[n].toString(),
+                        style: sourceStyle,
+                      ),
                       onPressed: () => toggleNumber(n),
                       backgroundColor:
                           sourceSelected[n] ? Colors.blueAccent : Colors.white,
                     ))
                 .toList()));
   }
+
 }
