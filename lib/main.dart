@@ -20,6 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'solver.dart';
 
 void main() {
   runApp(MyApp());
@@ -121,7 +122,7 @@ class _MainPageState extends State<MainPage> {
                   ),
                 ),
                 TextButton(
-                  onPressed: readyToSolve ? () {} : null,
+                  onPressed: readyToSolve ? () { startSolve(); } : null,
                   child: Text('Solve', style: buttonStyle),
                 ),
               ],
@@ -144,6 +145,13 @@ class _MainPageState extends State<MainPage> {
       targetNumber = 0;
       targetTextController.clear();
     });
+  }
+
+  // this will eventually be some Stream thing but for now we just call the game solver so it prints to the console
+  void startSolve() {
+    final numbers = Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
+    print(numbers);
+    Game(numbers, targetNumber).solve_depth(numbers.length);
   }
 
   void toggleNumber(int n) {
