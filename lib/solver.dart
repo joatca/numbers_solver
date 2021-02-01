@@ -86,13 +86,9 @@ class Mul extends Op {
   symbol() => '×';
 
   calc(v1, v2, f) {
-    if (v1.num > v2.num) {
-      // intermediate results may not be negative
-      final result = v1 - v2;
 /* ignore any combination where either operand is 1 since the result will be the other operand (so useless operation); also multiplication is commutative so filter out half of the operations */
-      if (v1.num > 1 && v2.num > 1 && v1.num > v2.num) {
-        f(result);
-      }
+    if (v1.num > 1 && v2.num > 1 && v1.num >= v2.num) {
+      f(v1 * v2);
     }
   }
 }
@@ -102,10 +98,8 @@ class Div extends Op {
 
   calc(v1, v2, f) {
     /* only integer division allowed, so only when modulus is 0; since neither operand can be zero this also checks that v1>v2; also ignore when v2 is 1 since that's a useless operation */
-    if (v1.num > v2.num) {
-      if (v1.num % v2.num == 0 && v2.num > 1) {
-        f(v1 ~/ v2);
-      }
+    if (v1.num % v2.num == 0 && v2.num > 1) {
+      f(v1 ~/ v2);
     }
   }
 }
@@ -122,7 +116,8 @@ class Step {
 }
 
 class Game {
-  static const maxAway = 9; // furthest away we can be before reporting a result
+  static const maxAway =
+      900; // furthest away we can be before reporting a result
   static final allowedOps = [Add(), Sub(), Mul(), Div()];
   int bestAway = maxAway +
       1; // one more than the furthest away so we can tell if we got any solution
@@ -136,13 +131,15 @@ class Game {
 
   Game(this.numbers, this.target) {
     var letter = 'a'.codeUnitAt(0);
-    values = numbers.map((n) => Value(n, String.fromCharCode(letter++))).toList();
+    values =
+        numbers.map((n) => Value(n, String.fromCharCode(letter++))).toList();
+    print(target);
     print(values);
     stack = [];
     steps = [];
     avail = List.filled(values.length, true);
   }
-  
+
   /* there follow three abstraction functions that make the core code both
      simpler and more confusing (if you haven't used a lot of Ruby); each
      one performs an operation on a stack, calls a function (passed anonymously
@@ -176,7 +173,7 @@ class Game {
   }
 
   // try something with the top two numbers
-  void try_op(int depth, Op op) {
+  void tryOp(int depth, Op op) {
     with_top_values((v1, v2) {
       op.calc(v1, v2, (result) {
         /* we push the step onto the stack *before* checking whether we got the
@@ -187,12 +184,15 @@ class Game {
           if (away <= bestAway) {
             // for now just report the result to the console, we'll worry about async reporting to the screen later
             showSteps();
+            // we only want to report equivalent or better results, never worse results than the previous best
+            if (away < bestAway) {
+              bestAway = away;
+              print("new bestAway $bestAway");
+            }
           }
-          // we only want to report equivalent or better results, never worse results than the previous best
-          if (away < bestAway) {
-            bestAway = away;
-          }
-          with_value_on_stack(result, () { solve_depth(depth); });
+          with_value_on_stack(result, () {
+            solve_depth(depth);
+          });
         });
       });
     });
@@ -200,18 +200,25 @@ class Game {
 
   // depth-wise solve
   void solve_depth(int depth) {
+    // print("solve_depth $depth");
     // if depth > 0 then we can continue to try pushing numbers onto the expression stack
     // bleugh we have to use a loop, there's no equivalent of each_with_index
-    for (var i = 0; i < values.length; ++i) {
-      if (avail[i]) {
-        avail[i] = false;
-        with_value_on_stack(values[i], () { solve_depth(depth - 1); });
-        avail[i] = true;
+    if (depth > 0) {
+      for (var i = 0; i < values.length; i++) {
+        if (avail[i]) {
+          avail[i] = false;
+          with_value_on_stack(values[i], () {
+            solve_depth(depth - 1);
+          });
+          avail[i] = true;
+        }
       }
     }
     // if we have at least 2 numbers on the stack then we can try applying operations to them
     if (stack.length >= 2) {
-      allowedOps.forEach((op) { try_op(depth, op); });
+      allowedOps.forEach((op) {
+        tryOp(depth, op);
+      });
     }
   }
 

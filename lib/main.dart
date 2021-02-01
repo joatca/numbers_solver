@@ -152,6 +152,7 @@ class _MainPageState extends State<MainPage> {
     final numbers = Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
     print(numbers);
     Game(numbers, targetNumber).solve_depth(numbers.length);
+    print("game over");
   }
 
   void toggleNumber(int n) {
