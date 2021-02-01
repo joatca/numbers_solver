@@ -20,6 +20,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'dart:async';
 
+import 'dart:io';
+
 class Value {
   int num;
   String tag;
@@ -110,26 +112,41 @@ class Div extends Op {
   }
 }
 
-class Step {
+class SolutionStep {
   Op op;
   Value v1, v2, result;
 
-  Step(this.op, this.v1, this.v2, this.result);
+  SolutionStep(this.op, this.v1, this.v2, this.result);
 
   String toString() {
     return "$v1$op$v2=$result";
   }
 }
 
+class Solution {
+  List<SolutionStep> steps;
+  int result, away;
+
+  Solution(int target, List<SolutionStep> solSteps) {
+    steps = List.of(solSteps); // clone the list
+    result = steps.last.result.num;
+    away = (result - target).abs();
+  }
+
+  String toString() {
+    return "${steps.map((step)=> step.toString()).join('; ')} ($away away)";
+  }
+}
+
 class Game {
-  static const maxAway = 900; // furthest away we can be before reporting a result
+  static const maxAway = 9; // furthest away we can be before reporting a result
   static final allowedOps = [Add(), Sub(), Mul(), Div()];
   int bestAway = maxAway + 1; // one more than the furthest away so we can tell if we got any solution
   List<int> numbers; // the raw numbers that came from the caller
   List<Value> values; // source (puzzle) numbers
   int target; // target value
   List<Value> stack; // expression stack
-  List<Step> steps; // record of the current steps, used when reporting solutions
+  List<SolutionStep> steps; // record of the current steps, used when reporting solutions
   List<bool> avail; // which source numbers are current available
 
   Game(this.numbers, this.target) {
@@ -141,7 +158,7 @@ class Game {
   }
 
   // try something with the top two numbers
-  Iterable<List<Step>> tryOp(int depth, Op op) sync* {
+  Stream<Solution> tryOp(int depth, Op op) async* {
     final v2 = stack.removeLast();
     final v1 = stack.removeLast();
     final result = op.calc(v1, v2);
@@ -149,11 +166,11 @@ class Game {
       /* we push the step onto the stack *before* checking whether we got the
            target, that way we can output the step immediately
          */
-      steps.add(Step(op, v1, v2, result));
+      steps.add(SolutionStep(op, v1, v2, result));
       final away = (result.num - target).abs();
       if (away <= bestAway) {
-        // for now just report the result to the console, we'll worry about async reporting to the screen later
-        yield steps;
+        yield Solution(target, steps);
+        sleep(Duration(milliseconds: 500));
         // we only want to report equivalent or better results, never worse results than the previous best
         if (away < bestAway) {
           bestAway = away;
@@ -169,7 +186,7 @@ class Game {
   }
 
   // depth-wise solve
-  Iterable<List<Step>> solveDepth(int depth) sync* {
+  Stream<Solution> solveDepth(int depth) async* {
     // if depth > 0 then we can continue to try pushing numbers onto the expression stack
     // bleugh we have to use a loop, there's no equivalent of each_with_index
     if (depth > 0) {
@@ -189,16 +206,6 @@ class Game {
         yield* tryOp(depth, op);
       }
     }
-  }
-
-  Stream<List<Step>> solutionStream() async* {
-    for (var solution in solutions()) {
-      yield solution;
-    }
-  }
-
-  Iterable<List<Step>> solutions() sync* {
-    yield* solveDepth(numbers.length);
   }
 
 }

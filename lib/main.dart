@@ -70,7 +70,8 @@ class _MainPageState extends State<MainPage> {
   static final buttonStyle = TextStyle(
     fontSize: 24,
   );
-  StreamSubscription solutions;
+  List<Solution> solutions = [];
+  Stream<Solution> solver;
 
 
   @override
@@ -126,7 +127,7 @@ class _MainPageState extends State<MainPage> {
                 ),
                 TextButton(
                   onPressed: readyToSolve ? () { startSolve(); } : null,
-                  child: Text(solutions == null ? 'Solve' : 'Stop', style: buttonStyle),
+                  child: Text(solver == null ? 'Solve' : 'Stop', style: buttonStyle),
                 ),
               ],
             ),
@@ -146,27 +147,36 @@ class _MainPageState extends State<MainPage> {
     setState(() {
       sourceSelected.fillRange(0, sourceSelected.length, false);
       targetNumber = 0;
+      solutions.clear();
       targetTextController.clear();
     });
   }
 
-  // this will eventually be some Stream thing but for now we just call the game solver so it prints to the console
-  void startSolve() {
+  void startSolve() async {
     final numbers = Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
     print(numbers);
     final game = Game(numbers, targetNumber);
-    final solutionStream = game.solutions();
-    for (var solution in solutionStream) {
+    solver = game.solveDepth(numbers.length);
+    solutions.clear();
+    print("game start");
+    await for (var solution in solver) {
+      print("received $solution");
       setState(() {
-        print("${solution.map((step) => step.toString()).join('; ')}");
+        if (solutions.length > 0) {
+          if (solution.away < solutions.first.away) { // this solution is better than the previous ones, dump the old ones
+            solutions.clear();
+          } // the solver never returns worse solutions
+        }
+        solutions.add(solution);
       });
     }
+    solver = null;
     print("game over");
   }
 
-  void killSolve() async {
-    solutions.cancel();
-  }
+  // void killSolve() async {
+  //   solver.close();
+  // }
 
   void toggleNumber(int n) {
     setState(() {
@@ -208,6 +218,10 @@ class _MainPageState extends State<MainPage> {
   }
 
   List<Widget> resultTiles() {
-    return <Widget>[];
+    return solutions.map((solution) {
+      return ListTile(
+        title: Text(solution.toString()),
+      );
+    }).toList();
   }
 }
