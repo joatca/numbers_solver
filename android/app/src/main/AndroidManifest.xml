@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="me.joat.numbers_solver">
    <application
-        android:label="numbers_solver"
+        android:label="Numbers Game Solver"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
