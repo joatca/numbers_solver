@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'solver.dart';
@@ -69,6 +70,8 @@ class _MainPageState extends State<MainPage> {
   static final buttonStyle = TextStyle(
     fontSize: 24,
   );
+  StreamSubscription solutions;
+
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +126,7 @@ class _MainPageState extends State<MainPage> {
                 ),
                 TextButton(
                   onPressed: readyToSolve ? () { startSolve(); } : null,
-                  child: Text('Solve', style: buttonStyle),
+                  child: Text(solutions == null ? 'Solve' : 'Stop', style: buttonStyle),
                 ),
               ],
             ),
@@ -151,8 +154,18 @@ class _MainPageState extends State<MainPage> {
   void startSolve() {
     final numbers = Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
     print(numbers);
-    Game(numbers, targetNumber).solve_depth(numbers.length);
+    final game = Game(numbers, targetNumber);
+    final solutionStream = game.solutions();
+    for (var solution in solutionStream) {
+      setState(() {
+        print("${solution.map((step) => step.toString()).join('; ')}");
+      });
+    }
     print("game over");
+  }
+
+  void killSolve() async {
+    solutions.cancel();
   }
 
   void toggleNumber(int n) {

@@ -18,6 +18,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import 'dart:async';
+
 class Value {
   int num;
   String tag;
@@ -49,7 +51,7 @@ class Value {
 
 abstract class Op {
   String symbol();
-  calc(Value v1, Value v2, void f(Value v));
+  Value calc(Value v1, Value v2);
 
   String toString() {
     return symbol();
@@ -59,48 +61,52 @@ abstract class Op {
 class Add extends Op {
   symbol() => '+';
 
-  calc(v1, v2, f) {
+  Value calc(v1, v2) {
     if (v1.num >= v2.num) {
       // addition is commutative so we can ignore half of the possibilities
-      f(v1 + v2);
+      return (v1 + v2);
     }
+    return null;
   }
 }
 
 class Sub extends Op {
   symbol() => '-';
 
-  calc(v1, v2, f) {
+  Value calc(v1, v2) {
     if (v1.num > v2.num) {
       // intermediate results may not be negative
       final result = v1 - v2;
       /* neither operand is 0 so result can never be v1; if it's v2 then don't bother calling the function since it's a useless operation */
       if (result.num != v2.num) {
-        f(result);
+        return result;
       }
     }
+    return null;
   }
 }
 
 class Mul extends Op {
   symbol() => '×';
 
-  calc(v1, v2, f) {
+  Value calc(v1, v2) {
 /* ignore any combination where either operand is 1 since the result will be the other operand (so useless operation); also multiplication is commutative so filter out half of the operations */
     if (v1.num > 1 && v2.num > 1 && v1.num >= v2.num) {
-      f(v1 * v2);
+      return (v1 * v2);
     }
+    return null;
   }
 }
 
 class Div extends Op {
   symbol() => '÷';
 
-  calc(v1, v2, f) {
+  Value calc(v1, v2) {
     /* only integer division allowed, so only when modulus is 0; since neither operand can be zero this also checks that v1>v2; also ignore when v2 is 1 since that's a useless operation */
     if (v1.num % v2.num == 0 && v2.num > 1) {
-      f(v1 ~/ v2);
+      return (v1 ~/ v2);
     }
+    return null;
   }
 }
 
@@ -116,23 +122,19 @@ class Step {
 }
 
 class Game {
-  static const maxAway =
-      900; // furthest away we can be before reporting a result
+  static const maxAway = 900; // furthest away we can be before reporting a result
   static final allowedOps = [Add(), Sub(), Mul(), Div()];
-  int bestAway = maxAway +
-      1; // one more than the furthest away so we can tell if we got any solution
+  int bestAway = maxAway + 1; // one more than the furthest away so we can tell if we got any solution
   List<int> numbers; // the raw numbers that came from the caller
   List<Value> values; // source (puzzle) numbers
   int target; // target value
   List<Value> stack; // expression stack
-  List<Step>
-      steps; // record of the current steps, used when reporting solutions
+  List<Step> steps; // record of the current steps, used when reporting solutions
   List<bool> avail; // which source numbers are current available
 
   Game(this.numbers, this.target) {
     var letter = 'a'.codeUnitAt(0);
-    values =
-        numbers.map((n) => Value(n, String.fromCharCode(letter++))).toList();
+    values = numbers.map((n) => Value(n, String.fromCharCode(letter++))).toList();
     print(target);
     print(values);
     stack = [];
@@ -140,66 +142,38 @@ class Game {
     avail = List.filled(values.length, true);
   }
 
-  /* there follow three abstraction functions that make the core code both
-     simpler and more confusing (if you haven't used a lot of Ruby); each
-     one performs an operation on a stack, calls a function (passed anonymously
-     when used further down) then reverses that stack operation. They avoid
-     littering the code with stack operations */
-
-  // abstract away the push-a-result, do-something, pop-the-result action
-  void with_step(Step step, void f()) {
-    // print("steps $steps add_step $step");
-    steps.add(step);
-    // print("steps during $steps");
-    f();
-    steps.removeLast();
-    // print("steps after $steps");
-  }
-
-  // abstract away the push-a-result, do-something, pop-the-result action
-  void with_value_on_stack(Value v, void f()) {
-    stack.add(v);
-    f();
-    stack.removeLast();
-  }
-
-  // and finally abstract away popping two values, doing something with them then pushing them back again
-  void with_top_values(void f(Value a, b)) {
+  // try something with the top two numbers
+  Iterable<List<Step>> tryOp(int depth, Op op) sync* {
     final v2 = stack.removeLast();
-    final v1 = stack.removeLast(); // note the reverse order
-    f(v1, v2);
+    final v1 = stack.removeLast();
+    final result = op.calc(v1, v2);
+    if (result != null) {
+      /* we push the step onto the stack *before* checking whether we got the
+           target, that way we can output the step immediately
+         */
+      steps.add(Step(op, v1, v2, result));
+      final away = (result.num - target).abs();
+      if (away <= bestAway) {
+        // for now just report the result to the console, we'll worry about async reporting to the screen later
+        print("infunc yield $steps");
+        yield steps;
+        // we only want to report equivalent or better results, never worse results than the previous best
+        if (away < bestAway) {
+          bestAway = away;
+          print("new bestAway $bestAway");
+        }
+      }
+      stack.add(result);
+      yield* solveDepth(depth);
+      stack.removeLast();
+      steps.removeLast();
+    }
     stack.add(v1);
     stack.add(v2);
   }
 
-  // try something with the top two numbers
-  void tryOp(int depth, Op op) {
-    with_top_values((v1, v2) {
-      op.calc(v1, v2, (result) {
-        /* we push the step onto the stack *before* checking whether we got the
-           target, that way we can output the step immediately
-         */
-        with_step(Step(op, v1, v2, result), () {
-          final away = (result.num - target).abs();
-          if (away <= bestAway) {
-            // for now just report the result to the console, we'll worry about async reporting to the screen later
-            showSteps();
-            // we only want to report equivalent or better results, never worse results than the previous best
-            if (away < bestAway) {
-              bestAway = away;
-              print("new bestAway $bestAway");
-            }
-          }
-          with_value_on_stack(result, () {
-            solve_depth(depth);
-          });
-        });
-      });
-    });
-  }
-
   // depth-wise solve
-  void solve_depth(int depth) {
+  Iterable<List<Step>> solveDepth(int depth) sync* {
     // print("solve_depth $depth");
     // if depth > 0 then we can continue to try pushing numbers onto the expression stack
     // bleugh we have to use a loop, there's no equivalent of each_with_index
@@ -207,24 +181,35 @@ class Game {
       for (var i = 0; i < values.length; i++) {
         if (avail[i]) {
           avail[i] = false;
-          with_value_on_stack(values[i], () {
-            solve_depth(depth - 1);
-          });
+          stack.add(values[i]);
+          yield* solveDepth(depth - 1);
+          stack.removeLast();
           avail[i] = true;
         }
       }
     }
     // if we have at least 2 numbers on the stack then we can try applying operations to them
     if (stack.length >= 2) {
-      allowedOps.forEach((op) {
-        tryOp(depth, op);
-      });
+      for (var op in allowedOps) {
+        yield* tryOp(depth, op);
+      }
     }
   }
 
-  // TMP: show the current steps
-  void showSteps() {
-    // print(steps);
-    print("${steps.map((step) => step.toString()).join('; ')}");
+  Stream<List<Step>> solutionStream() async* {
+    for (var solution in solutions()) {
+      print("async yield $solution");
+      yield solution;
+    }
   }
+
+  Iterable<List<Step>> solutions() sync* {
+    yield* solveDepth(numbers.length);
+  }
+
+  // TMP: show the current steps
+  // void showSteps() {
+  //   // print(steps);
+  //   print("${steps.map((step) => step.toString()).join('; ')}");
+  // }
 }
