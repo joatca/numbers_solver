@@ -135,8 +135,6 @@ class Game {
   Game(this.numbers, this.target) {
     var letter = 'a'.codeUnitAt(0);
     values = numbers.map((n) => Value(n, String.fromCharCode(letter++))).toList();
-    print(target);
-    print(values);
     stack = [];
     steps = [];
     avail = List.filled(values.length, true);
@@ -155,12 +153,10 @@ class Game {
       final away = (result.num - target).abs();
       if (away <= bestAway) {
         // for now just report the result to the console, we'll worry about async reporting to the screen later
-        print("infunc yield $steps");
         yield steps;
         // we only want to report equivalent or better results, never worse results than the previous best
         if (away < bestAway) {
           bestAway = away;
-          print("new bestAway $bestAway");
         }
       }
       stack.add(result);
@@ -174,7 +170,6 @@ class Game {
 
   // depth-wise solve
   Iterable<List<Step>> solveDepth(int depth) sync* {
-    // print("solve_depth $depth");
     // if depth > 0 then we can continue to try pushing numbers onto the expression stack
     // bleugh we have to use a loop, there's no equivalent of each_with_index
     if (depth > 0) {
@@ -198,7 +193,6 @@ class Game {
 
   Stream<List<Step>> solutionStream() async* {
     for (var solution in solutions()) {
-      print("async yield $solution");
       yield solution;
     }
   }
@@ -207,9 +201,4 @@ class Game {
     yield* solveDepth(numbers.length);
   }
 
-  // TMP: show the current steps
-  // void showSteps() {
-  //   // print(steps);
-  //   print("${steps.map((step) => step.toString()).join('; ')}");
-  // }
 }
