@@ -20,8 +20,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'dart:async';
 
-import 'dart:io';
-
 class Value {
   int num;
   String tag;
@@ -159,6 +157,7 @@ class Game {
 
   // try something with the top two numbers
   Stream<Solution> tryOp(int depth, Op op) async* {
+    yield null;
     final v2 = stack.removeLast();
     final v1 = stack.removeLast();
     final result = op.calc(v1, v2);
@@ -169,8 +168,10 @@ class Game {
       steps.add(SolutionStep(op, v1, v2, result));
       final away = (result.num - target).abs();
       if (away <= bestAway) {
-        yield Solution(target, steps);
-        sleep(Duration(milliseconds: 500));
+        // await Future.delayed(Duration(milliseconds: 500), () async* {
+          yield Solution(target, steps);
+
+        // });
         // we only want to report equivalent or better results, never worse results than the previous best
         if (away < bestAway) {
           bestAway = away;
@@ -206,6 +207,10 @@ class Game {
         yield* tryOp(depth, op);
       }
     }
+    // for (var i = 0; i < 10; ++i) {
+    //   yield null;
+    //   sleep(Duration(seconds: 1));
+    // }
   }
 
 }

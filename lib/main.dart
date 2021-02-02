@@ -71,13 +71,11 @@ class _MainPageState extends State<MainPage> {
     fontSize: 24,
   );
   List<Solution> solutions = [];
-  Stream<Solution> solver;
-
+  StreamSubscription<Solution> solver;
 
   @override
   Widget build(BuildContext context) {
-    final readyToSolve =
-        countSelected() == sourceRequired && targetNumber >= 100;
+    final readyToSolve = countSelected() == sourceRequired && targetNumber >= 100;
     final clearable = countSelected() > 0 || targetNumber > 0;
 
     return Scaffold(
@@ -126,11 +124,18 @@ class _MainPageState extends State<MainPage> {
                   ),
                 ),
                 TextButton(
-                  onPressed: readyToSolve ? () { startSolve(); } : null,
+                  onPressed: readyToSolve
+                      ? () {
+                          setState(() {
+                            toggleSolve();
+                          });
+                        }
+                      : null,
                   child: Text(solver == null ? 'Solve' : 'Stop', style: buttonStyle),
                 ),
               ],
             ),
+            Text(solutions.length.toString()),
             Expanded(
               // don't understand yet how this works, but needed to stop squishing everything else
               child: ListView(
@@ -143,6 +148,31 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
+  // returns a row of source number chips given by the offset and length
+  Widget numberRow(int offset, int length) {
+    return Center(
+        child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: Iterable.generate(length, (i) => i + offset)
+                .map((n) => ActionChip(
+                      label: Text(
+                        sourceNumbers[n].toString(),
+                        style: sourceStyle,
+                      ),
+                      onPressed: () => toggleNumber(n),
+                      backgroundColor: sourceSelected[n] ? Colors.blueAccent : Colors.white,
+                    ))
+                .toList()));
+  }
+
+  List<Widget> resultTiles() {
+    return solutions.map((solution) {
+      return ListTile(
+        title: Text(solution.toString()),
+      );
+    }).toList();
+  }
+
   void resetPuzzle() {
     setState(() {
       sourceSelected.fillRange(0, sourceSelected.length, false);
@@ -152,27 +182,52 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
-  void startSolve() async {
-    final numbers = Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
-    print(numbers);
-    final game = Game(numbers, targetNumber);
-    solver = game.solveDepth(numbers.length);
-    solutions.clear();
-    print("game start");
-    await for (var solution in solver) {
-      print("received $solution");
-      setState(() {
-        if (solutions.length > 0) {
-          if (solution.away < solutions.first.away) { // this solution is better than the previous ones, dump the old ones
-            solutions.clear();
-          } // the solver never returns worse solutions
-        }
-        solutions.add(solution);
-      });
-    }
-    solver = null;
-    print("game over");
+  void toggleSolve() {
+    setState(() {
+      if (solver == null) {
+        final numbers =
+            Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
+        final game = Game(numbers, targetNumber);
+        final solverStream = game.solveDepth(numbers.length);
+        solutions.clear();
+        print("about to listen");
+        solver = solverStream.listen(
+          (Solution s) {
+            setState(() {
+              if (s != null) {
+                print("received $s");
+                if (solutions.length > 0) {
+                  if (s.away < solutions.first.away) {
+                    // this solution is better than the previous ones, dump the old ones
+                    solutions.clear();
+                  } // the solver never returns worse solutions
+                }
+                solutions.add(s);
+              }
+            });
+          },
+          onDone: () {
+            setState(() {
+              print("onDone");
+              solver = null;
+            });
+          },
+        );
+      } else {
+        print("about to cancel");
+        solver.cancel();
+        solver = null;
+      }
+    });
   }
+  //   await for (var solution in solver) {
+  //     print("received $solution");
+  //     setState(() {
+  //     });
+  //   }
+  //   solver = null;
+  //   print("game over");
+  // }
 
   // void killSolve() async {
   //   solver.close();
@@ -193,35 +248,6 @@ class _MainPageState extends State<MainPage> {
   }
 
   int countSelected() {
-    return sourceSelected.fold(
-        0,
-        (previousValue, element) =>
-            element ? previousValue + 1 : previousValue);
-  }
-
-  // returns a row of source number chips given by the offset and length
-  Widget numberRow(int offset, int length) {
-    return Center(
-        child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: Iterable.generate(length, (i) => i + offset)
-                .map((n) => ActionChip(
-                      label: Text(
-                        sourceNumbers[n].toString(),
-                        style: sourceStyle,
-                      ),
-                      onPressed: () => toggleNumber(n),
-                      backgroundColor:
-                          sourceSelected[n] ? Colors.blueAccent : Colors.white,
-                    ))
-                .toList()));
-  }
-
-  List<Widget> resultTiles() {
-    return solutions.map((solution) {
-      return ListTile(
-        title: Text(solution.toString()),
-      );
-    }).toList();
+    return sourceSelected.fold(0, (previousValue, element) => element ? previousValue + 1 : previousValue);
   }
 }
