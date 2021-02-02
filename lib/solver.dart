@@ -18,6 +18,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import 'dart:io';
+
 class Value {
   int num;
   String tag;
@@ -143,7 +145,7 @@ class Solution {
     return "${steps.map((step)=> step.toString()).join('; ')} ($away away)";
   }
   // render this to be sent over a SendPort
-  List<Map<String, Object>> toMsg() => steps.map((step) => step.toMsg()).toList();
+  Map<String, Object> toMsg() => { 'result': result, 'away': away, 'steps': steps.map((step) => step.toMsg()).toList() };
 }
 
 class Game {
@@ -178,10 +180,8 @@ class Game {
       steps.add(SolutionStep(op, v1, v2, result));
       final away = (result.num - target).abs();
       if (away <= bestAway) {
-        // await Future.delayed(Duration(milliseconds: 500), () async* {
           yield Solution(target, steps);
-
-        // });
+          sleep(Duration(milliseconds: 500));
         // we only want to report equivalent or better results, never worse results than the previous best
         if (away < bestAway) {
           bestAway = away;

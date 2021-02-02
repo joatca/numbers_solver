@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import 'dart:async';
-import 'package:flutter/cupertino.dart';
+import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'solver.dart';
 
@@ -70,8 +70,10 @@ class _MainPageState extends State<MainPage> {
   static final buttonStyle = TextStyle(
     fontSize: 24,
   );
-  List<Solution> solutions = [];
-  StreamSubscription<Solution> solver;
+  List<Map<String, Object>> solutions = [];
+  Isolate solver;
+  SendPort sendToSolver;
+  bool running = false;
 
   @override
   Widget build(BuildContext context) {
@@ -126,12 +128,11 @@ class _MainPageState extends State<MainPage> {
                 TextButton(
                   onPressed: readyToSolve
                       ? () {
-                          setState(() {
-                            toggleSolve();
-                          });
+                          running = true;
+                          initSolver();
                         }
                       : null,
-                  child: Text(solver == null ? 'Solve' : 'Stop', style: buttonStyle),
+                  child: Text(running ? 'Solve' : 'Stop', style: buttonStyle),
                 ),
               ],
             ),
@@ -173,66 +174,6 @@ class _MainPageState extends State<MainPage> {
     }).toList();
   }
 
-  void resetPuzzle() {
-    setState(() {
-      sourceSelected.fillRange(0, sourceSelected.length, false);
-      targetNumber = 0;
-      solutions.clear();
-      targetTextController.clear();
-    });
-  }
-
-  void toggleSolve() {
-    setState(() {
-      if (solver == null) {
-        final numbers =
-            Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
-        final game = Game(numbers, targetNumber);
-        final solverStream = game.solveDepth(numbers.length);
-        solutions.clear();
-        print("about to listen");
-        solver = solverStream.listen(
-          (Solution s) {
-            setState(() {
-              if (s != null) {
-                print("received $s");
-                if (solutions.length > 0) {
-                  if (s.away < solutions.first.away) {
-                    // this solution is better than the previous ones, dump the old ones
-                    solutions.clear();
-                  } // the solver never returns worse solutions
-                }
-                solutions.add(s);
-              }
-            });
-          },
-          onDone: () {
-            setState(() {
-              print("onDone");
-              solver = null;
-            });
-          },
-        );
-      } else {
-        print("about to cancel");
-        solver.cancel();
-        solver = null;
-      }
-    });
-  }
-  //   await for (var solution in solver) {
-  //     print("received $solution");
-  //     setState(() {
-  //     });
-  //   }
-  //   solver = null;
-  //   print("game over");
-  // }
-
-  // void killSolve() async {
-  //   solver.close();
-  // }
-
   void toggleNumber(int n) {
     setState(() {
       if (sourceSelected[n]) {
@@ -247,7 +188,103 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
+  void resetPuzzle() {
+    setState(() {
+      sourceSelected.fillRange(0, sourceSelected.length, false);
+      targetNumber = 0;
+      solutions.clear();
+      targetTextController.clear();
+    });
+  }
+
   int countSelected() {
     return sourceSelected.fold(0, (previousValue, element) => element ? previousValue + 1 : previousValue);
   }
+
+  void initSolver() async {
+    solutions.clear();
+    sendToSolver = await startSolver();
+    // we now have a running isolate and a port to send it the game
+    final numbers =  Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
+    sendToSolver.send({ 'numbers': numbers, 'target': targetNumber });
+  }
+
+  Future<SendPort> startSolver() async {
+    Completer completer = new Completer<SendPort>();
+    ReceivePort fromSolver = ReceivePort();
+
+    fromSolver.listen((data) {
+      if (data is SendPort) {
+        completer.complete(data); // this is how we'll send games to the solver Isolate
+      }
+      receiveSolution(data); // otherwise this is how we receive solutions
+    });
+
+    solver = await Isolate.spawn(getSolutions, fromSolver.sendPort);
+    return completer.future;
+  }
+
+  void receiveSolution(Map<String, Object> data) {
+    setState(() {
+      if (solutions.length > 0) {
+        if ((data["away"] as int) < (solutions.first["away"] as int)) {
+          solutions.clear(); // this solution is better than the ones we have, dump everything we have
+        }
+        solutions.add(data);
+      }
+    });
+  }
+
+  // void toggleSolve() {
+  //   setState(() {
+  //     if (solver == null) {
+  //       final numbers =
+  //           Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
+  //       final game = Game(numbers, targetNumber);
+  //       final solverStream = game.solveDepth(numbers.length);
+  //       solutions.clear();
+  //       print("about to listen");
+  //       solver = solverStream.listen(
+  //         (Solution s) {
+  //           setState(() {
+  //             if (s != null) {
+  //               print("received $s");
+  //               if (solutions.length > 0) {
+  //                 if (s.away < solutions.first.away) {
+  //                   // this solution is better than the previous ones, dump the old ones
+  //                   solutions.clear();
+  //                 } // the solver never returns worse solutions
+  //               }
+  //               solutions.add(s);
+  //             }
+  //           });
+  //         },
+  //         onDone: () {
+  //           setState(() {
+  //             print("onDone");
+  //             solver = null;
+  //           });
+  //         },
+  //       );
+  //     } else {
+  //       print("about to cancel");
+  //       solver.cancel();
+  //       solver = null;
+  //     }
+  //   });
+  // }
+}
+
+void getSolutions(SendPort toMain) {
+  ReceivePort toSolver = ReceivePort();
+  toMain.send(toSolver.sendPort);
+  toSolver.listen((data) {
+    // here we receive a map of the game
+    final numbers = data["numbers"] as List<int>;
+    final target = data["target"] as int;
+    final game = Game(numbers, target);
+    for (var solution in game.solveDepth(6)) {
+      toMain.send(solution);
+    }
+  });
 }
