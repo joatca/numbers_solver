@@ -47,6 +47,9 @@ class Value {
   String toString() {
     return "$num[$tag]";
   }
+
+  // render this to be sent over a SendPort
+  Map<String, Object> toMsg() => { 'num': num, 'tag': tag };
 }
 
 abstract class Op {
@@ -56,6 +59,9 @@ abstract class Op {
   String toString() {
     return symbol();
   }
+
+  // render this to be sent over a SendPort
+  String toMsg() => toString();
 }
 
 class Add extends Op {
@@ -119,6 +125,10 @@ class SolutionStep {
   String toString() {
     return "$v1$op$v2=$result";
   }
+
+  // render this to be sent over a SendPort
+  Map<String, Object> toMsg() => { 'op': op.toMsg(), 'v1': v1, 'v2': v2, 'result': result };
+
 }
 
 class Solution {
@@ -134,6 +144,8 @@ class Solution {
   String toString() {
     return "${steps.map((step)=> step.toString()).join('; ')} ($away away)";
   }
+  // render this to be sent over a SendPort
+  List<Map<String, Object>> toMsg() => steps.map((step) => step.toMsg()).toList();
 }
 
 class Game {
