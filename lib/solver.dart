@@ -18,8 +18,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import 'dart:async';
-
 class Value {
   int num;
   String tag;
@@ -168,7 +166,7 @@ class Game {
   }
 
   // try something with the top two numbers
-  Stream<Solution> tryOp(int depth, Op op) async* {
+  Iterable<Solution> tryOp(int depth, Op op) sync* {
     yield null;
     final v2 = stack.removeLast();
     final v1 = stack.removeLast();
@@ -199,7 +197,7 @@ class Game {
   }
 
   // depth-wise solve
-  Stream<Solution> solveDepth(int depth) async* {
+  Iterable<Solution> solveDepth(int depth) sync* {
     // if depth > 0 then we can continue to try pushing numbers onto the expression stack
     // bleugh we have to use a loop, there's no equivalent of each_with_index
     if (depth > 0) {
