@@ -103,6 +103,7 @@ class _MainPageState extends State<MainPage> {
                     decoration: InputDecoration(
                       hintText: 'Target',
                       border: const OutlineInputBorder(),
+                      contentPadding: EdgeInsets.all(1.0),
                       counterText: '', // don't show the counter'
                     ),
                     onChanged: (String val) async {
@@ -132,7 +133,7 @@ class _MainPageState extends State<MainPage> {
             ),
             Divider(
               height: 5,
-              color: Colors.black,
+              color: solutions.length > 0 ? Colors.black : Colors.transparent,
               thickness: 1,
             ),
             Expanded(
