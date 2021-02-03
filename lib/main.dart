@@ -229,11 +229,6 @@ class _MainPageState extends State<MainPage> {
       killSolver();
     } else {
       setState(() {
-        if (solutions.length > 0) {
-          if ((data["away"] as int) < (solutions.first["away"] as int)) {
-            solutions.clear(); // this solution is better than the ones we have, dump everything we have
-          }
-        }
         addSolution(data);
       });
     }
@@ -242,13 +237,14 @@ class _MainPageState extends State<MainPage> {
   // add the latest solution then trim everything down to the "best" - prefer closer to the target and shorter solutions
   void addSolution(data) {
     assert(data is Map);
-    solutions.add(data);
-    solutions.sort((a, b) {
-      if (a["away"] == b["away"]) {
-        return a["steps"].length.compareTo(b["steps"].length);
+    if (solutions.length > 0) {
+      if ((data["away"] as int) < (solutions.first["away"] as int)) {
+        solutions.clear(); // this solution is better than the ones we have, dump everything
       }
-      return (a["away"] as int).compareTo(b["away"] as int);
-    });
+    }
+    solutions.add(data);
+    // we sort only by the shortest solution since we've already eliminated any that are further away
+    solutions.sort((a, b) => a["steps"].length.compareTo(b["steps"].length));
     while (solutions.length > maxSolutions) {
       solutions.removeLast();
     }
