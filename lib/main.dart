@@ -216,7 +216,6 @@ class _MainPageState extends State<MainPage> {
   }
 
   void killSolver() {
-    print("killed");
     setState(() {
       solver?.kill(priority: Isolate.immediate);
       solver = null;
