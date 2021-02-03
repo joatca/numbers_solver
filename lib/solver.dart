@@ -49,7 +49,7 @@ class Value {
   }
 
   // render this to be sent over a SendPort
-  Map<String, Object> toMsg() => { 'num': num, 'tag': tag };
+  Map toMsg() => { 'num': num, 'tag': tag };
 }
 
 abstract class Op {
@@ -127,7 +127,7 @@ class SolutionStep {
   }
 
   // render this to be sent over a SendPort
-  Map<String, Object> toMsg() => { 'op': op.toMsg(), 'v1': v1, 'v2': v2, 'result': result };
+  Map toMsg() => { 'op': op.toMsg(), 'v1': v1, 'v2': v2, 'result': result };
 
 }
 
@@ -145,7 +145,7 @@ class Solution {
     return "${steps.map((step)=> step.toString()).join('; ')} ($away away)";
   }
   // render this to be sent over a SendPort
-  Map<String, Object> toMsg() => { 'result': result, 'away': away, 'steps': steps.map((step) => step.toMsg()).toList() };
+  Map toMsg() => { 'result': result, 'away': away, 'steps': steps.map((step) => step.toMsg()).toList() };
 }
 
 class Game {
@@ -165,11 +165,11 @@ class Game {
     stack = [];
     steps = [];
     avail = List.filled(values.length, true);
+    print("numbers $numbers target $target");
   }
 
   // try something with the top two numbers
   Iterable<Solution> tryOp(int depth, Op op) sync* {
-    yield null;
     final v2 = stack.removeLast();
     final v1 = stack.removeLast();
     final result = op.calc(v1, v2);
@@ -181,7 +181,7 @@ class Game {
       final away = (result.num - target).abs();
       if (away <= bestAway) {
           yield Solution(target, steps);
-          sleep(Duration(milliseconds: 500));
+          //sleep(Duration(milliseconds: 500));
         // we only want to report equivalent or better results, never worse results than the previous best
         if (away < bestAway) {
           bestAway = away;
