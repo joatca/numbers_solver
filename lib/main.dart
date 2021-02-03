@@ -58,6 +58,7 @@ class _MainPageState extends State<MainPage> {
   var sourceSelected = sourceNumbers.map((e) => false).toList(growable: false);
   static const sourceRequired = 6;
   static const maxTargetLength = 3;
+  static const maxSolutions = 20; // plenty of options
   var targetNumber = 0;
   TextEditingController targetTextController = TextEditingController();
   static const targetWidth = 120.0;
@@ -233,8 +234,23 @@ class _MainPageState extends State<MainPage> {
             solutions.clear(); // this solution is better than the ones we have, dump everything we have
           }
         }
-        solutions.add(data);
+        addSolution(data);
       });
+    }
+  }
+
+  // add the latest solution then trim everything down to the "best" - prefer closer to the target and shorter solutions
+  void addSolution(data) {
+    assert(data is Map);
+    solutions.add(data);
+    solutions.sort((a, b) {
+      if (a["away"] == b["away"]) {
+        return a["steps"].length.compareTo(b["steps"].length);
+      }
+      return (a["away"] as int).compareTo(b["away"] as int);
+    });
+    while (solutions.length > maxSolutions) {
+      solutions.removeLast();
     }
   }
 
