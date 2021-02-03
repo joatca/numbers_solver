@@ -18,8 +18,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import 'dart:io';
-
 class Value {
   int num;
   String tag;
@@ -145,11 +143,11 @@ class Solution {
     return "${steps.map((step)=> step.toString()).join('; ')} ($away away)";
   }
   // render this to be sent over a SendPort
-  Map toMsg() => { 'result': result, 'away': away, 'steps': steps.map((step) => step.toMsg()).toList() };
+  Map toMsg() => { 'steps': steps.map((step) => step.toMsg()).toList(), 'away': away, };
 }
 
 class Game {
-  static const maxAway = 9; // furthest away we can be before reporting a result
+  static const maxAway = 999; // furthest away we can be before reporting a result
   static final allowedOps = [Add(), Sub(), Mul(), Div()];
   int bestAway = maxAway + 1; // one more than the furthest away so we can tell if we got any solution
   List<int> numbers; // the raw numbers that came from the caller
@@ -165,7 +163,6 @@ class Game {
     stack = [];
     steps = [];
     avail = List.filled(values.length, true);
-    print("numbers $numbers target $target");
   }
 
   // try something with the top two numbers
@@ -181,7 +178,7 @@ class Game {
       final away = (result.num - target).abs();
       if (away <= bestAway) {
           yield Solution(target, steps);
-          //sleep(Duration(milliseconds: 500));
+          // sleep(Duration(milliseconds: 500));
         // we only want to report equivalent or better results, never worse results than the previous best
         if (away < bestAway) {
           bestAway = away;

@@ -77,7 +77,6 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    final readyToSolve = countSelected() == sourceRequired && targetNumber >= 100;
     final clearable = countSelected() > 0 || targetNumber > 0;
 
     return Scaffold(
@@ -97,7 +96,7 @@ class _MainPageState extends State<MainPage> {
                     maxLength: maxTargetLength,
                     style: targetStyle,
                     maxLines: 1,
-                    showCursor: false,
+                    showCursor: true,
                     textAlign: TextAlign.center,
                     keyboardType: TextInputType.number,
                     controller: targetTextController,
@@ -119,23 +118,23 @@ class _MainPageState extends State<MainPage> {
               alignment: MainAxisAlignment.center,
               children: [
                 TextButton(
-                  onPressed: clearable ? resetPuzzle : null,
+                  onPressed: clearable && !running ? resetPuzzle : null,
                   child: Text(
-                    'Reset',
+                    'Clear',
                     style: buttonStyle,
                   ),
                 ),
                 TextButton(
-                  onPressed: readyToSolve
-                      ? () {
-                          initSolver();
-                        }
-                      : null,
-                  child: Text(running ? 'Stop' : 'Solve', style: buttonStyle),
+                  onPressed: solveButton(),
+                  child: Text(running ? 'Cancel' : 'Solve', style: buttonStyle),
                 ),
               ],
             ),
-            Text(solutions.length.toString()),
+            Divider(
+              height: 5,
+              color: Colors.black,
+              thickness: 1,
+            ),
             Expanded(
               // don't understand yet how this works, but needed to stop squishing everything else
               child: ListView(
@@ -146,6 +145,19 @@ class _MainPageState extends State<MainPage> {
         ),
       ),
     );
+  }
+
+  Function solveButton() {
+    if (running) {
+      return killSolver;
+    } else {
+      final readyToSolve = countSelected() == sourceRequired && targetNumber >= 100;
+      if (readyToSolve) {
+        return initSolver;
+      } else {
+        return null;
+      }
+    }
   }
 
   // returns a row of source number chips given by the offset and length
@@ -174,17 +186,19 @@ class _MainPageState extends State<MainPage> {
   }
 
   void toggleNumber(int n) {
-    setState(() {
-      if (sourceSelected[n]) {
-        // it is currently select, deselect it
-        sourceSelected[n] = false;
-      } else {
-        // not selected, select it only if we don't already have 6 selected
-        if (countSelected() < sourceRequired) {
-          sourceSelected[n] = true;
+    if (!running) {
+      setState(() {
+        if (sourceSelected[n]) {
+          // it is currently select, deselect it
+          sourceSelected[n] = false;
+        } else {
+          // not selected, select it only if we don't already have 6 selected
+          if (countSelected() < sourceRequired) {
+            sourceSelected[n] = true;
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   void resetPuzzle() {
@@ -200,15 +214,28 @@ class _MainPageState extends State<MainPage> {
     return sourceSelected.fold(0, (previousValue, element) => element ? previousValue + 1 : previousValue);
   }
 
-  void initSolver() async {
-    solutions.clear();
-    sendToSolver = await startSolverListener();
-    // we now have a running isolate and a port to send it the game
-    final numbers =  Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
-    sendToSolver.send({ 'numbers': numbers, 'target': targetNumber });
+  void killSolver() {
+    print("killed");
     setState(() {
-      running = true;
+      solver?.kill(priority: Isolate.immediate);
+      solver = null;
+      running = false;
     });
+  }
+
+  void receiveSolution(data) {
+    if (data == null) {
+      killSolver();
+    } else {
+      setState(() {
+        if (solutions.length > 0) {
+          if ((data["away"] as int) < (solutions.first["away"] as int)) {
+            solutions.clear(); // this solution is better than the ones we have, dump everything we have
+          }
+        }
+        solutions.add(data);
+      });
+    }
   }
 
   Future<SendPort> startSolverListener() async {
@@ -227,55 +254,20 @@ class _MainPageState extends State<MainPage> {
     return completer.future;
   }
 
-  void receiveSolution(data) {
+  void initSolver() async {
     setState(() {
-      if (solutions.length > 0) {
-        if ((data["away"] as int) < (solutions.first["away"] as int)) {
-          solutions.clear(); // this solution is better than the ones we have, dump everything we have
-        }
-      }
-      solutions.add(data);
+      FocusScope.of(context).unfocus(); // dismiss the keyboard if possible
+    });
+    solutions.clear();
+    sendToSolver = await startSolverListener();
+    // we now have a running isolate and a port to send it the game
+    final numbers =
+        Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
+    sendToSolver.send({'numbers': numbers, 'target': targetNumber});
+    setState(() {
+      running = true;
     });
   }
-
-  // void toggleSolve() {
-  //   setState(() {
-  //     if (solver == null) {
-  //       final numbers =
-  //           Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
-  //       final game = Game(numbers, targetNumber);
-  //       final solverStream = game.solveDepth(numbers.length);
-  //       solutions.clear();
-  //       print("about to listen");
-  //       solver = solverStream.listen(
-  //         (Solution s) {
-  //           setState(() {
-  //             if (s != null) {
-  //               print("received $s");
-  //               if (solutions.length > 0) {
-  //                 if (s.away < solutions.first.away) {
-  //                   // this solution is better than the previous ones, dump the old ones
-  //                   solutions.clear();
-  //                 } // the solver never returns worse solutions
-  //               }
-  //               solutions.add(s);
-  //             }
-  //           });
-  //         },
-  //         onDone: () {
-  //           setState(() {
-  //             print("onDone");
-  //             solver = null;
-  //           });
-  //         },
-  //       );
-  //     } else {
-  //       print("about to cancel");
-  //       solver.cancel();
-  //       solver = null;
-  //     }
-  //   });
-  // }
 }
 
 void sendSolutions(SendPort toMain) {
@@ -289,5 +281,6 @@ void sendSolutions(SendPort toMain) {
     for (var solution in game.solveDepth(6)) {
       toMain.send(solution.toMsg());
     }
+    toMain.send(null); // signal end of run
   });
 }
