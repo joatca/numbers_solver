@@ -56,6 +56,7 @@ class _MainPageState extends State<MainPage> {
   static final bigNumbers = [25, 50, 75, 100];
   static final sourceNumbers = smallNumbers + smallNumbers + bigNumbers;
   var sourceSelected = sourceNumbers.map((e) => false).toList(growable: false);
+  List<int> numbers;
   static const sourceRequired = 6;
   static const maxTargetLength = 3;
   static const maxSolutions = 20; // plenty of options
@@ -127,7 +128,7 @@ class _MainPageState extends State<MainPage> {
                   ),
                 ),
                 TextButton(
-                  onPressed: solveButton(),
+                  onPressed: solveButtonAction(),
                   child: Text(running ? 'Cancel' : 'Solve', style: buttonStyle),
                 ),
               ],
@@ -149,12 +150,13 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Function solveButton() {
+  Function solveButtonAction() {
     if (running) {
       return killSolver;
     } else {
       final readyToSolve = countSelected() == sourceRequired && targetNumber >= 100;
-      if (readyToSolve) {
+      final sourcesIncludeTarget = sourceNumbers.any((n) => n == targetNumber);
+      if (readyToSolve && !sourcesIncludeTarget) {
         return initSolver;
       } else {
         return null;
@@ -191,7 +193,7 @@ class _MainPageState extends State<MainPage> {
     if (!running) {
       setState(() {
         if (sourceSelected[n]) {
-          // it is currently select, deselect it
+          // it is currently selected, deselect it
           sourceSelected[n] = false;
         } else {
           // not selected, select it only if we don't already have 6 selected
@@ -199,6 +201,8 @@ class _MainPageState extends State<MainPage> {
             sourceSelected[n] = true;
           }
         }
+        numbers =
+            Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
       });
     }
   }
@@ -273,8 +277,6 @@ class _MainPageState extends State<MainPage> {
     solutions.clear();
     sendToSolver = await startSolverListener();
     // we now have a running isolate and a port to send it the game
-    final numbers =
-        Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
     sendToSolver.send({'numbers': numbers, 'target': targetNumber});
     setState(() {
       running = true;
