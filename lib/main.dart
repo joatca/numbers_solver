@@ -266,7 +266,7 @@ class _MainPageState extends State<MainPage> {
       }
     });
 
-    solver = await Isolate.spawn(sendSolutions, fromSolver.sendPort);
+    solver = await Isolate.spawn(solutionSender, fromSolver.sendPort);
     return completer.future;
   }
 
@@ -284,7 +284,7 @@ class _MainPageState extends State<MainPage> {
   }
 }
 
-void sendSolutions(SendPort toMain) {
+void solutionSender(SendPort toMain) {
   ReceivePort toSolver = ReceivePort();
   toMain.send(toSolver.sendPort);
   toSolver.listen((data) {
