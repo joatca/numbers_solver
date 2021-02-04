@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import 'dart:isolate';
-import 'solver.dart';
+import 'game.dart';
 
 void solutionSender(SendPort toMain) {
   ReceivePort toSolver = ReceivePort();
