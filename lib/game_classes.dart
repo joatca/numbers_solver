@@ -125,7 +125,7 @@ class SolutionStep {
   }
 
   // render this to be sent over a SendPort
-  Map toMsg() => { 'op': op.toMsg(), 'v1': v1, 'v2': v2, 'result': result };
+  Map toMsg() => { 'op': op.toMsg(), 'v1': v1.toMsg(), 'v2': v2.toMsg(), 'result': result.toMsg() };
 
 }
 

@@ -44,8 +44,16 @@ class _MainPageState extends State<MainPage> {
   var targetNumber = 0;
   TextEditingController targetTextController = TextEditingController();
   static const targetWidth = 120.0;
+  static const dividerColor = Colors.black12;
+  static const dividerThickness = 2.0;
+  static const stepSeparation = 6.0;
+  static const verticalStepSeparation = 3.0;
   static final numberStyle = TextStyle(
     fontSize: 16,
+  );
+  static final tagStyle = TextStyle(
+    fontSize: 8,
+    fontStyle: FontStyle.italic,
   );
   static final targetStyle = TextStyle(
     fontSize: 20,
@@ -115,14 +123,16 @@ class _MainPageState extends State<MainPage> {
               ],
             ),
             Divider(
-              height: 5,
-              color: solutions.length > 0 ? Colors.black : Colors.transparent,
-              thickness: 1,
+              color: solutions.length > 0 ? dividerColor : Colors.transparent,
+              thickness: dividerThickness,
             ),
             Expanded(
               // don't understand yet how this works, but needed to stop squishing everything else
-              child: ListView(
-                children: resultTiles(),
+              child: ListView.separated(
+                itemCount: solutions.length,
+                separatorBuilder: (BuildContext context, int index) => Divider(thickness: dividerThickness,
+                color: dividerColor,),
+                itemBuilder: (BuildContext context, int index) => resultTile(index),
               ),
             ),
           ],
@@ -140,23 +150,71 @@ class _MainPageState extends State<MainPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: Iterable.generate(length, (i) => i + offset)
                 .map((n) => ActionChip(
-              label: Text(
-                sourceNumbers[n].toString(),
-                style: numberStyle,
-              ),
-              onPressed: () => toggleNumber(n),
-              backgroundColor: sourceSelected[n] ? Colors.blueAccent : Colors.white,
-            ))
+                      label: Text(
+                        sourceNumbers[n].toString(),
+                        style: numberStyle,
+                      ),
+                      onPressed: () => toggleNumber(n),
+                      backgroundColor: sourceSelected[n] ? Colors.blueAccent : Colors.white,
+                    ))
                 .toList()));
   }
 
   // returns each result in a ListTile
-  List<Widget> resultTiles() {
-    return solutions.map((solution) {
-      return ListTile(
-        title: Text(solution.toString()),
-      );
-    }).toList();
+  List<Widget> resultTiles() => solutions.map((solution) => solutionTile(solution)).toList();
+
+  Widget resultTile(int index) => solutionTile(solutions[index]);
+
+  // returns a value (number plus tag)
+  Widget valueTile(Map v) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          v["num"].toString(),
+          style: numberStyle,
+        ),
+        Text(
+          v["tag"],
+          style: tagStyle,
+        ),
+      ],
+    );
+  }
+
+  Widget stepTile(Map v1, Map v2, String op, Map result) {
+    return Container(
+        margin: EdgeInsets.fromLTRB(0.0, 0.0, stepSeparation, verticalStepSeparation),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            valueTile(v1),
+            Text(
+              op,
+              style: numberStyle,
+            ),
+            valueTile(v2),
+            Text(
+              '=',
+              style: numberStyle,
+            ),
+            valueTile(result),
+          ],
+        ));
+  }
+
+  Widget solutionTile(Map solution) {
+    final solutionWidgets =
+        solution["steps"].map<Widget>((step) => stepTile(step['v1'], step['v2'], step['op'], step['result'])).toList();
+    solutionWidgets.add(Text(
+      "(${solution["away"]} away)",
+      style: numberStyle,
+    ));
+    return Wrap(
+      children: solutionWidgets,
+    );
   }
 
   // return that function that the solve/cancel button executes when tapped
@@ -165,7 +223,7 @@ class _MainPageState extends State<MainPage> {
       return killSolver;
     } else {
       final readyToSolve = countSelected() == sourceRequired && targetNumber >= 100;
-      final sourcesIncludeTarget = sourceNumbers.any((n) => n == targetNumber);
+      final sourcesIncludeTarget = numbers.any((n) => n == targetNumber);
       if (readyToSolve && !sourcesIncludeTarget) {
         return initSolver;
       } else {
