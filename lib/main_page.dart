@@ -37,7 +37,7 @@ class _MainPageState extends State<MainPage> {
   static final bigNumbers = [25, 50, 75, 100];
   static final sourceNumbers = smallNumbers + smallNumbers + bigNumbers;
   var sourceSelected = sourceNumbers.map((e) => false).toList(growable: false);
-  List<int> numbers;
+  List<int> numbers = [];
   static const sourceRequired = 6;
   static const maxTargetLength = 3;
   static const maxSolutions = 20; // plenty of options
@@ -131,19 +131,7 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Function solveButtonAction() {
-    if (running) {
-      return killSolver;
-    } else {
-      final readyToSolve = countSelected() == sourceRequired && targetNumber >= 100;
-      final sourcesIncludeTarget = sourceNumbers.any((n) => n == targetNumber);
-      if (readyToSolve && !sourcesIncludeTarget) {
-        return initSolver;
-      } else {
-        return null;
-      }
-    }
-  }
+  // composite widget functions
 
   // returns a row of source number chips given by the offset and length
   Widget numberRow(int offset, int length) {
@@ -162,6 +150,7 @@ class _MainPageState extends State<MainPage> {
                 .toList()));
   }
 
+  // returns each result in a ListTile
   List<Widget> resultTiles() {
     return solutions.map((solution) {
       return ListTile(
@@ -170,6 +159,22 @@ class _MainPageState extends State<MainPage> {
     }).toList();
   }
 
+  // return that function that the solve/cancel button executes when tapped
+  Function solveButtonAction() {
+    if (running) {
+      return killSolver;
+    } else {
+      final readyToSolve = countSelected() == sourceRequired && targetNumber >= 100;
+      final sourcesIncludeTarget = sourceNumbers.any((n) => n == targetNumber);
+      if (readyToSolve && !sourcesIncludeTarget) {
+        return initSolver;
+      } else {
+        return null;
+      }
+    }
+  }
+
+  // when a source number is tapped, toggle its state, unless that's not allowed
   void toggleNumber(int n) {
     if (!running) {
       setState(() {
@@ -188,6 +193,7 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  // reset everything - remove any solutions, reset the target to zero and clear all the selected source numbers
   void resetPuzzle() {
     setState(() {
       sourceSelected.fillRange(0, sourceSelected.length, false);
@@ -197,18 +203,12 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
+  // how many source numbers are selected? - since we maintain the state of the numbers list then it's just the length
   int countSelected() {
-    return sourceSelected.fold(0, (previousValue, element) => element ? previousValue + 1 : previousValue);
+    return numbers.length;
   }
 
-  void killSolver() {
-    setState(() {
-      solver?.kill(priority: Isolate.immediate);
-      solver = null;
-      running = false;
-    });
-  }
-
+  // solutionSender sends a null once the search is complete; if so then kill it, otherwise add the solution it just found
   void receiveSolution(data) {
     if (data == null) {
       killSolver();
@@ -235,6 +235,7 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  // this sets up all the ports to and from the solver isolate, registers a callback to listen, then starts up the isolate
   Future<SendPort> startSolverListener() async {
     Completer completer = new Completer<SendPort>();
     ReceivePort fromSolver = ReceivePort();
@@ -251,6 +252,7 @@ class _MainPageState extends State<MainPage> {
     return completer.future;
   }
 
+  // called when the Solve button is pressed; clear the onscreen kb if possible, clear the solutions then start up the solver isolate
   void initSolver() async {
     setState(() {
       FocusScope.of(context).unfocus(); // dismiss the keyboard if possible
@@ -261,6 +263,15 @@ class _MainPageState extends State<MainPage> {
     sendToSolver.send({'numbers': numbers, 'target': targetNumber});
     setState(() {
       running = true;
+    });
+  }
+
+  // kill the solver isolate if it's running then reset the running state
+  void killSolver() {
+    setState(() {
+      solver?.kill(priority: Isolate.immediate);
+      solver = null;
+      running = false;
     });
   }
 }
