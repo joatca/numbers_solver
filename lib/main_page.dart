@@ -44,7 +44,7 @@ class _MainPageState extends State<MainPage> {
   var targetNumber = 0;
   TextEditingController targetTextController = TextEditingController();
   static const targetWidth = 120.0;
-  static final sourceStyle = TextStyle(
+  static final numberStyle = TextStyle(
     fontSize: 16,
   );
   static final targetStyle = TextStyle(
@@ -142,7 +142,7 @@ class _MainPageState extends State<MainPage> {
                 .map((n) => ActionChip(
               label: Text(
                 sourceNumbers[n].toString(),
-                style: sourceStyle,
+                style: numberStyle,
               ),
               onPressed: () => toggleNumber(n),
               backgroundColor: sourceSelected[n] ? Colors.blueAccent : Colors.white,
