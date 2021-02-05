@@ -30,7 +30,7 @@ void solutionSender(SendPort toMain) {
     final target = data["target"] as int;
     final game = Game(numbers, target);
     for (var solution in game.solveDepth(6)) {
-      toMain.send(solution.toMsg());
+      toMain.send(solution); // doing this instead of the old toMsg() methods means it only works in Dart Native - not web
     }
     toMain.send(null); // signal end of run
   });

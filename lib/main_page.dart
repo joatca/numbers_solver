@@ -21,6 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import 'dart:isolate';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:numbers_solver/game_classes.dart';
 import 'solution_sender.dart';
 
 class MainPage extends StatefulWidget {
@@ -61,7 +62,7 @@ class _MainPageState extends State<MainPage> {
   static final buttonStyle = TextStyle(
     fontSize: 24,
   );
-  List<Map> solutions = [];
+  List<Solution> solutions = [];
   Isolate solver;
   SendPort sendToSolver;
   bool running = false;
@@ -166,50 +167,50 @@ class _MainPageState extends State<MainPage> {
   Widget resultTile(int index) => solutionTile(solutions[index]);
 
   // returns a value (number plus tag)
-  Widget valueTile(Map v) {
+  Widget valueTile(Value v) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          v["num"].toString(),
+          v.num.toString(),
           style: numberStyle,
         ),
         Text(
-          v["tag"],
+          v.tag,
           style: tagStyle,
         ),
       ],
     );
   }
 
-  Widget stepTile(Map v1, Map v2, String op, Map result) {
+  Widget stepTile(SolutionStep step) {
     return Container(
         margin: EdgeInsets.fromLTRB(0.0, 0.0, stepSeparation, verticalStepSeparation),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            valueTile(v1),
+            valueTile(step.v1),
             Text(
-              op,
+              step.op.toString(),
               style: numberStyle,
             ),
-            valueTile(v2),
+            valueTile(step.v2),
             Text(
               '=',
               style: numberStyle,
             ),
-            valueTile(result),
+            valueTile(step.result),
           ],
         ));
   }
 
-  Widget solutionTile(Map solution) {
+  Widget solutionTile(Solution solution) {
     final solutionWidgets =
-        solution["steps"].map<Widget>((step) => stepTile(step['v1'], step['v2'], step['op'], step['result'])).toList();
+        solution.steps.map<Widget>((step) => stepTile(step)).toList();
     solutionWidgets.add(Text(
-      "(${solution["away"]} away)",
+      "(${solution.away} away)",
       style: numberStyle,
     ));
     return Wrap(
@@ -278,18 +279,20 @@ class _MainPageState extends State<MainPage> {
   }
 
   // add the latest solution then trim everything down to the "best" - prefer closer to the target and shorter solutions
-  void addSolution(data) {
-    assert(data is Map);
-    if (solutions.length > 0) {
-      if ((data["away"] as int) < (solutions.first["away"] as int)) {
-        solutions.clear(); // this solution is better than the ones we have, dump everything
+  void addSolution(solution) {
+    assert(solution is Solution);
+    if (solution is Solution) { // this makes it typesafe inside the if block
+      if (solutions.length > 0) {
+        if (solution.away < solutions.first.away) {
+          solutions.clear(); // this solution is better than the ones we have, dump everything
+        }
       }
-    }
-    solutions.add(data);
-    // we sort only by the shortest solution since we've already eliminated any that are further away
-    solutions.sort((a, b) => a["steps"].length.compareTo(b["steps"].length));
-    while (solutions.length > maxSolutions) {
-      solutions.removeLast();
+      solutions.add(solution);
+      // we sort only by the shortest solution since we've already eliminated any that are further away
+      solutions.sort((a, b) => a.steps.length.compareTo(b.steps.length));
+      while (solutions.length > maxSolutions) {
+        solutions.removeLast();
+      }
     }
   }
 
