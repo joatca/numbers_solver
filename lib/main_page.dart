@@ -34,12 +34,32 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  // how many of each source number are allowed
+  static final Map<int, int> sourcesMax = {
+    1: 2,
+    2: 2,
+    3: 2,
+    4: 2,
+    5: 2,
+    6: 2,
+    7: 2,
+    8: 2,
+    9: 2,
+    10: 2,
+    25: 1,
+    50: 1,
+    75: 1,
+    100: 1,
+  };
+  static final distinctSources = sourcesMax.keys.toList();
+  static const numSourcesRequired = 6;
+  List<int> sourcesSelected = List.filled(numSourcesRequired, 1);
+  List<int> sourceIndexes = List.generate(numSourcesRequired, (index) => index);
+
   static final smallNumbers = List.generate(10, (i) => i + 1);
   static final bigNumbers = [25, 50, 75, 100];
   static final sourceNumbers = smallNumbers + smallNumbers + bigNumbers;
   var sourceSelected = sourceNumbers.map((e) => false).toList(growable: false);
-  List<int> numbers = [];
-  static const sourceRequired = 6;
   static const maxTargetLength = 3;
   static const maxSolutions = 20; // plenty of options
   var targetNumber = 0;
@@ -56,6 +76,10 @@ class _MainPageState extends State<MainPage> {
     fontSize: 8,
     fontStyle: FontStyle.italic,
   );
+  static final dropDownStyle = TextStyle(
+    fontSize: 12,
+    color: Colors.black,
+  );
   static final targetStyle = TextStyle(
     fontSize: 20,
   );
@@ -69,7 +93,13 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    final clearable = countSelected() > 0 || targetNumber > 0;
+    final clearable = sourcesSelected.any((src) => src != null) || targetNumber > 0;
+    final sourcesDropdowns = distinctSources.map<DropdownMenuItem<int>>((sourceNumber) {
+      return DropdownMenuItem<int>(
+        value: sourceNumber,
+        child: Text(sourceNumber.toString(), style: dropDownStyle),
+      );
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -79,9 +109,32 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            numberRow(0, smallNumbers.length),
-            numberRow(smallNumbers.length, smallNumbers.length),
-            numberRow(smallNumbers.length * 2, bigNumbers.length),
+            Row(
+              children: sourceIndexes.map<Widget>((index) {
+                return DropdownButton<int>(
+                  value: sourcesSelected[index],
+                  hint: Text('num', style: dropDownStyle),
+                  //icon: Icon(Icons.arrow_downward),
+                  style: dropDownStyle,
+                  underline: Container(
+                    height: 2,
+                    color: dividerColor,
+                  ),
+                  onChanged: (int newValue) {
+                    setState(() {
+                      sourcesSelected[index] = newValue;
+                    });
+                  },
+                  items: sourcesDropdowns,
+                );
+              }).toList(),
+            ),
+            Text(
+              sourcesSelected.toString(),
+            ),
+            // numberRow(0, smallNumbers.length),
+            // numberRow(smallNumbers.length, smallNumbers.length),
+            // numberRow(smallNumbers.length * 2, bigNumbers.length),
             Container(
                 width: targetWidth,
                 child: TextField(
@@ -131,8 +184,10 @@ class _MainPageState extends State<MainPage> {
               // don't understand yet how this works, but needed to stop squishing everything else
               child: ListView.separated(
                 itemCount: solutions.length,
-                separatorBuilder: (BuildContext context, int index) => Divider(thickness: dividerThickness,
-                color: dividerColor,),
+                separatorBuilder: (BuildContext context, int index) => Divider(
+                  thickness: dividerThickness,
+                  color: dividerColor,
+                ),
                 itemBuilder: (BuildContext context, int index) => resultTile(index),
               ),
             ),
@@ -145,21 +200,21 @@ class _MainPageState extends State<MainPage> {
   // composite widget functions
 
   // returns a row of source number chips given by the offset and length
-  Widget numberRow(int offset, int length) {
-    return Center(
-        child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: Iterable.generate(length, (i) => i + offset)
-                .map((n) => ActionChip(
-                      label: Text(
-                        sourceNumbers[n].toString(),
-                        style: numberStyle,
-                      ),
-                      onPressed: () => toggleNumber(n),
-                      backgroundColor: sourceSelected[n] ? Colors.blueAccent : Colors.white,
-                    ))
-                .toList()));
-  }
+  // Widget numberRow(int offset, int length) {
+  //   return Center(
+  //       child: Row(
+  //           mainAxisAlignment: MainAxisAlignment.center,
+  //           children: Iterable.generate(length, (i) => i + offset)
+  //               .map((n) => ActionChip(
+  //                     label: Text(
+  //                       chipFormat.format(sourceNumbers[n]),
+  //                       style: numberStyle,
+  //                     ),
+  //                     onPressed: () => toggleNumber(n),
+  //                     backgroundColor: sourceSelected[n] ? Colors.blueAccent : Colors.white,
+  //                   ))
+  //               .toList()));
+  // }
 
   // returns each result in a ListTile
   List<Widget> resultTiles() => solutions.map((solution) => solutionTile(solution)).toList();
@@ -207,8 +262,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget solutionTile(Solution solution) {
-    final solutionWidgets =
-        solution.steps.map<Widget>((step) => stepTile(step)).toList();
+    final solutionWidgets = solution.steps.map<Widget>((step) => stepTile(step)).toList();
     solutionWidgets.add(Text(
       "(${solution.away} away)",
       style: numberStyle,
@@ -218,13 +272,17 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
+  // which numbers may be selected as dropdowns at the moment?
+  // Iterable<int> validSources() => distinctSources
+  //     .where((source) => sourcesSelected.fold<int>(0, (acc, selected) => acc + source == selected ? 1 : 0) < sourcesMax[source]);
+
   // return that function that the solve/cancel button executes when tapped
   Function solveButtonAction() {
     if (running) {
       return killSolver;
     } else {
-      final readyToSolve = countSelected() == sourceRequired && targetNumber >= 100;
-      final sourcesIncludeTarget = numbers.any((n) => n == targetNumber);
+      final readyToSolve = sourcesSelected.every((src) => src != null) && targetNumber >= 100;
+      final sourcesIncludeTarget = sourcesSelected.any((n) => n == targetNumber);
       if (readyToSolve && !sourcesIncludeTarget) {
         return initSolver;
       } else {
@@ -234,23 +292,23 @@ class _MainPageState extends State<MainPage> {
   }
 
   // when a source number is tapped, toggle its state, unless that's not allowed
-  void toggleNumber(int n) {
-    if (!running) {
-      setState(() {
-        if (sourceSelected[n]) {
-          // it is currently selected, deselect it
-          sourceSelected[n] = false;
-        } else {
-          // not selected, select it only if we don't already have 6 selected
-          if (countSelected() < sourceRequired) {
-            sourceSelected[n] = true;
-          }
-        }
-        numbers =
-            Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
-      });
-    }
-  }
+  // void toggleNumber(int n) {
+  //   if (!running) {
+  //     setState(() {
+  //       if (sourceSelected[n]) {
+  //         // it is currently selected, deselect it
+  //         sourceSelected[n] = false;
+  //       } else {
+  //         // not selected, select it only if we don't already have 6 selected
+  //         if (countSelected() < sourceRequired) {
+  //           sourceSelected[n] = true;
+  //         }
+  //       }
+  //       numbers =
+  //           Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
+  //     });
+  //   }
+  // }
 
   // reset everything - remove any solutions, reset the target to zero and clear all the selected source numbers
   void resetPuzzle() {
@@ -263,9 +321,9 @@ class _MainPageState extends State<MainPage> {
   }
 
   // how many source numbers are selected? - since we maintain the state of the numbers list then it's just the length
-  int countSelected() {
-    return numbers.length;
-  }
+  // int countSelected() {
+  //   return numbers.length;
+  // }
 
   // solutionSender sends a null once the search is complete; if so then kill it, otherwise add the solution it just found
   void receiveSolution(data) {
@@ -281,7 +339,8 @@ class _MainPageState extends State<MainPage> {
   // add the latest solution then trim everything down to the "best" - prefer closer to the target and shorter solutions
   void addSolution(solution) {
     assert(solution is Solution);
-    if (solution is Solution) { // this makes it typesafe inside the if block
+    if (solution is Solution) {
+      // this makes it typesafe inside the if block
       if (solutions.length > 0) {
         if (solution.away < solutions.first.away) {
           solutions.clear(); // this solution is better than the ones we have, dump everything
@@ -321,7 +380,7 @@ class _MainPageState extends State<MainPage> {
     solutions.clear();
     sendToSolver = await startSolverListener();
     // we now have a running isolate and a port to send it the game
-    sendToSolver.send({'numbers': numbers, 'target': targetNumber});
+    sendToSolver.send({'numbers': sourcesSelected, 'target': targetNumber});
     setState(() {
       running = true;
     });
