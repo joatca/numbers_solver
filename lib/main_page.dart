@@ -103,35 +103,35 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            sourceButtons(0, 5),
-            sourceButtons(5, 10),
-            sourceButtons(10, 14),
-            standardDivider(_dividerColor),
+            _sourceButtons(0, 5),
+            _sourceButtons(5, 10),
+            _sourceButtons(10, 14),
+            _standardDivider(_dividerColor),
             Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  selectedDisplay(),
-                  targetField(),
+                  _selectedDisplay(),
+                  _targetField(),
                 ]),
-            actionButtonBar(),
-            standardDivider(_solutions.length > 0 ? _dividerColor : Colors.transparent),
-            solutionList(),
+            _actionButtonBar(),
+            _standardDivider(_solutions.length > 0 ? _dividerColor : Colors.transparent),
+            _solutionList(),
           ],
         ),
       ),
     );
   }
 
-  Divider standardDivider(Color color) => Divider(
+  Divider _standardDivider(Color color) => Divider(
         thickness: _dividerThickness,
         color: _dividerColor,
         height: 2.0,
       );
 
   // shows which numbers are currently selected
-  Widget selectedDisplay() {
+  Widget _selectedDisplay() {
     return Expanded(
         child: Text(
       _sourcesSelected.length > 0 ? _sourcesSelected.map((s) => s.toString()).join(' ') : '-',
@@ -140,7 +140,7 @@ class _MainPageState extends State<MainPage> {
     ));
   }
 
-  Widget targetField() {
+  Widget _targetField() {
     return Container(
         padding: EdgeInsets.fromLTRB(8.0, 8.0, 36.0, 8.0),
         width: _targetWidth,
@@ -170,15 +170,15 @@ class _MainPageState extends State<MainPage> {
             }));
   }
 
-  Widget actionButtonBar() {
+  Widget _actionButtonBar() {
     final clearable = _sourcesSelected.any((src) => src != null) || _targetNumber > 0;
 
     return ButtonBar(
       alignment: MainAxisAlignment.center,
       children: [
         TextButton.icon(
-          onPressed: clearable && !_running ? removeLast : null,
-          onLongPress: clearable && !_running ? resetPuzzle : null,
+          onPressed: clearable && !_running ? _removeLast : null,
+          onLongPress: clearable && !_running ? _resetPuzzle : null,
           label: Text(
             'Back',
             style: _actionButtonStyle,
@@ -186,7 +186,7 @@ class _MainPageState extends State<MainPage> {
           icon: Icon(Icons.undo),
         ),
         TextButton.icon(
-          onPressed: solveButtonAction(),
+          onPressed: _solveButtonAction(),
           label: Text(_running ? 'Cancel' : 'Solve', style: _actionButtonStyle),
           icon: Icon(Icons.play_arrow),
         ),
@@ -194,18 +194,18 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget solutionList() {
+  Widget _solutionList() {
     return Expanded(
       // don't understand yet how this works, but needed to stop squishing everything else
       child: ListView.separated(
         itemCount: _solutions.length,
-        separatorBuilder: (BuildContext context, int index) => standardDivider(_dividerColor),
-        itemBuilder: (BuildContext context, int index) => resultTile(index),
+        separatorBuilder: (BuildContext context, int index) => _standardDivider(_dividerColor),
+        itemBuilder: (BuildContext context, int index) => _resultTile(index),
       ),
     );
   }
 
-  Widget sourceButtons(int start, int end) {
+  Widget _sourceButtons(int start, int end) {
     return ButtonBar(
         alignment: MainAxisAlignment.center,
         children: _distinctSources.getRange(start, end).map<Widget>((srcNum) {
@@ -221,12 +221,12 @@ class _MainPageState extends State<MainPage> {
   }
 
   // returns each result in a ListTile
-  List<Widget> resultTiles() => _solutions.map((solution) => solutionTile(solution)).toList();
+  List<Widget> _resultTiles() => _solutions.map((solution) => _solutionTile(solution)).toList();
 
-  Widget resultTile(int index) => solutionTile(_solutions[index]);
+  Widget _resultTile(int index) => _solutionTile(_solutions[index]);
 
   // returns a value (number plus tag)
-  Widget valueTile(Value v) {
+  Widget _valueTile(Value v) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
@@ -243,30 +243,30 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget stepTile(SolutionStep step) {
+  Widget _stepTile(SolutionStep step) {
     return Container(
         margin: EdgeInsets.fromLTRB(0.0, 0.0, _stepSeparation, _verticalStepSeparation),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            valueTile(step.v1),
+            _valueTile(step.v1),
             Text(
               step.op.toString(),
               style: _numberStyle,
             ),
-            valueTile(step.v2),
+            _valueTile(step.v2),
             Text(
               '=',
               style: _numberStyle,
             ),
-            valueTile(step.result),
+            _valueTile(step.result),
           ],
         ));
   }
 
-  Widget solutionTile(Solution solution) {
-    final solutionWidgets = solution.steps.map<Widget>((step) => stepTile(step)).toList();
+  Widget _solutionTile(Solution solution) {
+    final solutionWidgets = solution.steps.map<Widget>((step) => _stepTile(step)).toList();
     solutionWidgets.add(Text(
       "(${solution.away} away)",
       style: _numberStyle,
@@ -277,7 +277,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   // is a particular button active?
-  bool buttonActive(int srcNum) {
+  bool _buttonActive(int srcNum) {
     if (_sourcesSelected.length >= _numSourcesRequired) {
       return false;
     }
@@ -289,7 +289,7 @@ class _MainPageState extends State<MainPage> {
 
   // action to take when the button labelled srcNum is pressed
   void processButton(int srcNum) {
-    if (buttonActive(srcNum)) {
+    if (_buttonActive(srcNum)) {
       setState(() {
         _sourcesSelected.add(srcNum);
       });
@@ -297,14 +297,14 @@ class _MainPageState extends State<MainPage> {
   }
 
   // return that function that the solve/cancel button executes when tapped
-  Function solveButtonAction() {
+  Function _solveButtonAction() {
     if (_running) {
-      return killSolver;
+      return _killSolver;
     } else {
       final readyToSolve = _sourcesSelected.length == _numSourcesRequired && _targetNumber >= 100;
       final sourcesIncludeTarget = _sourcesSelected.any((n) => n == _targetNumber);
       if (readyToSolve && !sourcesIncludeTarget) {
-        return initSolver;
+        return _initSolver;
       } else {
         return null;
       }
@@ -312,7 +312,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   // remove just the last source number added
-  void removeLast() {
+  void _removeLast() {
     setState(() {
       if (_sourcesSelected.length > 0) {
         _sourcesSelected.removeLast();
@@ -322,7 +322,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   // reset everything - remove any solutions, reset the target to zero and clear all the selected source numbers
-  void resetPuzzle() {
+  void _resetPuzzle() {
     setState(() {
       _sourcesSelected.clear();
       _targetNumber = 0;
@@ -332,18 +332,18 @@ class _MainPageState extends State<MainPage> {
   }
 
   // solutionSender sends a null once the search is complete; if so then kill it, otherwise add the solution it just found
-  void receiveSolution(data) {
+  void _receiveSolution(data) {
     if (data == null) {
-      killSolver();
+      _killSolver();
     } else {
       setState(() {
-        addSolution(data);
+        _addSolution(data);
       });
     }
   }
 
   // add the latest solution then trim everything down to the "best" - prefer closer to the target and shorter solutions
-  void addSolution(solution) {
+  void _addSolution(solution) {
     assert(solution is Solution);
     if (solution is Solution) {
       // this makes it typesafe inside the if block
@@ -362,7 +362,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   // this sets up all the ports to and from the solver isolate, registers a callback to listen, then starts up the isolate
-  Future<SendPort> startSolverListener() async {
+  Future<SendPort> _startSolverListener() async {
     Completer completer = new Completer<SendPort>();
     ReceivePort fromSolver = ReceivePort();
 
@@ -370,7 +370,7 @@ class _MainPageState extends State<MainPage> {
       if (data is SendPort) {
         completer.complete(data); // this is how we'll send games to the solver Isolate
       } else {
-        receiveSolution(data); // otherwise this is how we receive solutions
+        _receiveSolution(data); // otherwise this is how we receive solutions
       }
     });
 
@@ -379,12 +379,12 @@ class _MainPageState extends State<MainPage> {
   }
 
   // called when the Solve button is pressed; clear the onscreen kb if possible, clear the solutions then start up the solver isolate
-  void initSolver() async {
+  void _initSolver() async {
     setState(() {
       FocusScope.of(context).unfocus(); // dismiss the keyboard if possible
     });
     _solutions.clear();
-    _sendToSolver = await startSolverListener();
+    _sendToSolver = await _startSolverListener();
     // we now have a running isolate and a port to send it the game
     _sendToSolver.send({'numbers': _sourcesSelected, 'target': _targetNumber});
     setState(() {
@@ -393,7 +393,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   // kill the solver isolate if it's running then reset the running state
-  void killSolver() {
+  void _killSolver() {
     setState(() {
       _solver?.kill(priority: Isolate.immediate);
       _solver = null;
