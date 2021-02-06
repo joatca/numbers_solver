@@ -229,19 +229,20 @@ class _MainPageState extends State<MainPage> {
     return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: _distinctSources.getRange(start, end).map<Widget>((srcNum) {
-          return ActionChip(
+          return Container(
+            padding: EdgeInsets.only(left: 4.0, right: 4.0),
+              child: ActionChip(
               onPressed: () {
                 processButton(srcNum);
               },
               // backgroundColor: Theme.of(context).primaryColor,
               label: Container(
-                  //padding: EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0.0),
                 alignment: Alignment.center,
                   width: width,
                   child: Text(
                     srcNum.toString(),
                     style: _sourceButtonStyle,
-                  )));
+                  ))));
         }).toList());
   }
 
