@@ -99,27 +99,31 @@ class _MainPageState extends State<MainPage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            _sourceButtons(0, 5),
-            _sourceButtons(5, 10),
-            _sourceButtons(10, 14),
-            _standardDivider(_dividerColor),
-            Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  _selectedDisplay(),
-                  _targetField(),
-                ]),
-            _actionButtonBar(),
-            _standardDivider(_solutions.length > 0 ? _dividerColor : Colors.transparent),
-            _solutionList(),
-          ],
-        ),
+      body: _verticalLayout(),
+    );
+  }
+
+  Widget _verticalLayout() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          _sourceButtons(0, 5),
+          _sourceButtons(5, 10),
+          _sourceButtons(10, 14),
+          _standardDivider(_dividerColor),
+          Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                _selectedDisplay(),
+                _targetField(),
+              ]),
+          _actionButtonBar(),
+          _standardDivider(_solutions.length > 0 ? _dividerColor : Colors.transparent),
+          _solutionList(),
+        ],
       ),
     );
   }
