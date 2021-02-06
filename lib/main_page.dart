@@ -101,8 +101,8 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     _smallChipWidth = textWidth(_largestSmallSource);
     _largeChipWidth = textWidth(_largestSource);
+    _dividerColor = Theme.of(context).textTheme.button.color.withOpacity(0.2);
     _accentColor = Theme.of(context).accentColor;
-    _dividerColor = _accentColor.withOpacity(0.2);
     _sourceButtonBackgroundColor = _accentColor.withOpacity(0.6);
     final clearable = _sourcesSelected.any((src) => src != null) || _targetNumber > 0;
     return Scaffold(
