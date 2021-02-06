@@ -35,7 +35,7 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   // how many of each source number are allowed
-  static final Map<int, int> sourcesMax = {
+  static final Map<int, int> sourcesMaxAllowed = {
     1: 2,
     2: 2,
     3: 2,
@@ -52,7 +52,12 @@ class _MainPageState extends State<MainPage> {
     100: 1,
   };
   // all possible source numbers
-  static final _distinctSources = sourcesMax.keys.toList();
+  static final _distinctSources = sourcesMaxAllowed.keys.toList();
+  // find the largest source number (and we'll assume it's also the widest)
+  static final _largestSmallSource = 10;
+  static final _largestSource = 100;
+  double _smallChipWidth;
+  double _largeChipWidth;
   // number of sources required before allowing a solve
   static const _numSourcesRequired = 6;
   // which sources have been selected
@@ -95,11 +100,14 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    _smallChipWidth = textWidth(_largestSmallSource);
+    _largeChipWidth = textWidth(_largestSource);
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: _verticalLayout(),
+      body: OrientationBuilder(
+          builder: (context, orientation) => orientation == Orientation.portrait ? _verticalLayout() : _horizontalLayout()),
     );
   }
 
@@ -108,9 +116,10 @@ class _MainPageState extends State<MainPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
-          _sourceButtons(0, 5),
-          _sourceButtons(5, 10),
-          _sourceButtons(10, 14),
+          _actionButtonBar(),
+          _sourceButtons(0, 5, _smallChipWidth),
+          _sourceButtons(5, 10, _smallChipWidth),
+          _sourceButtons(10, 14, _largeChipWidth),
           _standardDivider(_dividerColor),
           Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -120,12 +129,28 @@ class _MainPageState extends State<MainPage> {
                 _selectedDisplay(),
                 _targetField(),
               ]),
-          _actionButtonBar(),
           _standardDivider(_solutions.length > 0 ? _dividerColor : Colors.transparent),
           _solutionList(),
         ],
       ),
     );
+  }
+
+  Widget _horizontalLayout() {
+    return Row(children: [
+      _solutionList(),
+      Column(
+        // full contents of right section
+        children: [
+          _actionButtonBar(),
+          _sourceButtons(0, 5, _smallChipWidth),
+          _sourceButtons(5, 10, _smallChipWidth),
+          _sourceButtons(10, 14, _largeChipWidth),
+          _selectedDisplay(),
+          _targetField(),
+        ],
+      )
+    ]);
   }
 
   Divider _standardDivider(Color color) => Divider(
@@ -209,18 +234,23 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _sourceButtons(int start, int end) {
-    return ButtonBar(
-        alignment: MainAxisAlignment.center,
+  Widget _sourceButtons(int start, int end, double width) {
+    return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: _distinctSources.getRange(start, end).map<Widget>((srcNum) {
-          return ElevatedButton(
+          return ActionChip(
               onPressed: () {
                 processButton(srcNum);
               },
-              child: Text(
-                srcNum.toString(),
-                style: _sourceButtonStyle,
-              ));
+              // backgroundColor: Theme.of(context).primaryColor,
+              label: Container(
+                  //padding: EdgeInsets.fromLTRB(4.0, 0.0, 4.0, 0.0),
+                alignment: Alignment.center,
+                  width: width,
+                  child: Text(
+                    srcNum.toString(),
+                    style: _sourceButtonStyle,
+                  )));
         }).toList());
   }
 
@@ -277,12 +307,23 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
+  double textWidth(int number) {
+    final Size size = (TextPainter(
+            text: TextSpan(text: number.toString(), style: _sourceButtonStyle),
+            maxLines: 1,
+            textScaleFactor: MediaQuery.of(context).textScaleFactor,
+            textDirection: TextDirection.ltr)
+          ..layout())
+        .size;
+    return size.width;
+  }
+
   // is a particular button active?
   bool _buttonActive(int srcNum) {
     if (_sourcesSelected.length >= _numSourcesRequired) {
       return false;
     }
-    if (_sourcesSelected.where((s) => s == srcNum).length >= sourcesMax[srcNum]) {
+    if (_sourcesSelected.where((s) => s == srcNum).length >= sourcesMaxAllowed[srcNum]) {
       return false;
     }
     return true;
