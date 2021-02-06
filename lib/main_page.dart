@@ -52,46 +52,46 @@ class _MainPageState extends State<MainPage> {
     100: 1,
   };
   // all possible source numbers
-  static final distinctSources = sourcesMax.keys.toList();
+  static final _distinctSources = sourcesMax.keys.toList();
   // number of sources required before allowing a solve
-  static const numSourcesRequired = 6;
+  static const _numSourcesRequired = 6;
   // which sources have been selected
-  List<int> sourcesSelected = [];
+  List<int> _sourcesSelected = [];
   // maximum length of the target word, used for the textfield
-  static const maxTargetLength = 3;
+  static const _maxTargetLength = 3;
   // maximum number of solutions to store
-  static const maxSolutions = 20; // plenty of options
+  static const _maxSolutions = 20; // plenty of options
   // the actual target number
-  var targetNumber = 0;
+  var _targetNumber = 0;
 
   TextEditingController targetTextController = TextEditingController();
 
   // UI options
-  static const targetWidth = 120.0;
-  static const dividerColor = Colors.black12;
-  static const dividerThickness = 2.0;
-  static const stepSeparation = 6.0;
-  static const verticalStepSeparation = 3.0;
-  static final numberStyle = TextStyle(
+  static const _targetWidth = 120.0;
+  static const _dividerColor = Colors.black12;
+  static const _dividerThickness = 2.0;
+  static const _stepSeparation = 6.0;
+  static const _verticalStepSeparation = 3.0;
+  static final _numberStyle = TextStyle(
     fontSize: 16,
   );
-  static final tagStyle = TextStyle(
+  static final _tagStyle = TextStyle(
     fontSize: 8,
     fontStyle: FontStyle.italic,
   );
-  static final targetStyle = TextStyle(
+  static final _targetStyle = TextStyle(
     fontSize: 20,
   );
-  static final sourceButtonStyle = TextStyle(
+  static final _sourceButtonStyle = TextStyle(
     fontSize: 20,
   );
-  static final actionButtonStyle = TextStyle(
+  static final _actionButtonStyle = TextStyle(
     fontSize: 24,
   );
-  List<Solution> solutions = [];
-  Isolate solver;
-  SendPort sendToSolver;
-  bool running = false;
+  List<Solution> _solutions = [];
+  Isolate _solver;
+  SendPort _sendToSolver;
+  bool _running = false;
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +106,7 @@ class _MainPageState extends State<MainPage> {
             sourceButtons(0, 5),
             sourceButtons(5, 10),
             sourceButtons(10, 14),
-            standardDivider(dividerColor),
+            standardDivider(_dividerColor),
             Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -116,7 +116,7 @@ class _MainPageState extends State<MainPage> {
                   targetField(),
                 ]),
             actionButtonBar(),
-            standardDivider(solutions.length > 0 ? dividerColor : Colors.transparent),
+            standardDivider(_solutions.length > 0 ? _dividerColor : Colors.transparent),
             solutionList(),
           ],
         ),
@@ -125,8 +125,8 @@ class _MainPageState extends State<MainPage> {
   }
 
   Divider standardDivider(Color color) => Divider(
-        thickness: dividerThickness,
-        color: dividerColor,
+        thickness: _dividerThickness,
+        color: _dividerColor,
         height: 2.0,
       );
 
@@ -134,8 +134,8 @@ class _MainPageState extends State<MainPage> {
   Widget selectedDisplay() {
     return Expanded(
         child: Text(
-      sourcesSelected.length > 0 ? sourcesSelected.map((s) => s.toString()).join(' ') : '-',
-      style: sourceButtonStyle,
+      _sourcesSelected.length > 0 ? _sourcesSelected.map((s) => s.toString()).join(' ') : '-',
+      style: _sourceButtonStyle,
       textAlign: TextAlign.center,
     ));
   }
@@ -143,10 +143,10 @@ class _MainPageState extends State<MainPage> {
   Widget targetField() {
     return Container(
         padding: EdgeInsets.fromLTRB(8.0, 8.0, 36.0, 8.0),
-        width: targetWidth,
+        width: _targetWidth,
         child: TextField(
-            maxLength: maxTargetLength,
-            style: targetStyle,
+            maxLength: _maxTargetLength,
+            style: _targetStyle,
             maxLines: 1,
             showCursor: true,
             textAlign: TextAlign.center,
@@ -161,33 +161,33 @@ class _MainPageState extends State<MainPage> {
             onChanged: (String val) async {
               setState(() {
                 if (val.length > 0) {
-                  targetNumber = int.parse(val);
+                  _targetNumber = int.parse(val);
                 } else {
-                  targetNumber = 0;
+                  _targetNumber = 0;
                 }
-                solutions.clear();
+                _solutions.clear();
               });
             }));
   }
 
   Widget actionButtonBar() {
-    final clearable = sourcesSelected.any((src) => src != null) || targetNumber > 0;
+    final clearable = _sourcesSelected.any((src) => src != null) || _targetNumber > 0;
 
     return ButtonBar(
       alignment: MainAxisAlignment.center,
       children: [
         TextButton.icon(
-          onPressed: clearable && !running ? removeLast : null,
-          onLongPress: clearable && !running ? resetPuzzle : null,
+          onPressed: clearable && !_running ? removeLast : null,
+          onLongPress: clearable && !_running ? resetPuzzle : null,
           label: Text(
             'Back',
-            style: actionButtonStyle,
+            style: _actionButtonStyle,
           ),
           icon: Icon(Icons.undo),
         ),
         TextButton.icon(
           onPressed: solveButtonAction(),
-          label: Text(running ? 'Cancel' : 'Solve', style: actionButtonStyle),
+          label: Text(_running ? 'Cancel' : 'Solve', style: _actionButtonStyle),
           icon: Icon(Icons.play_arrow),
         ),
       ],
@@ -198,8 +198,8 @@ class _MainPageState extends State<MainPage> {
     return Expanded(
       // don't understand yet how this works, but needed to stop squishing everything else
       child: ListView.separated(
-        itemCount: solutions.length,
-        separatorBuilder: (BuildContext context, int index) => standardDivider(dividerColor),
+        itemCount: _solutions.length,
+        separatorBuilder: (BuildContext context, int index) => standardDivider(_dividerColor),
         itemBuilder: (BuildContext context, int index) => resultTile(index),
       ),
     );
@@ -208,22 +208,22 @@ class _MainPageState extends State<MainPage> {
   Widget sourceButtons(int start, int end) {
     return ButtonBar(
         alignment: MainAxisAlignment.center,
-        children: distinctSources.getRange(start, end).map<Widget>((srcNum) {
+        children: _distinctSources.getRange(start, end).map<Widget>((srcNum) {
           return ElevatedButton(
               onPressed: () {
                 processButton(srcNum);
               },
               child: Text(
                 srcNum.toString(),
-                style: sourceButtonStyle,
+                style: _sourceButtonStyle,
               ));
         }).toList());
   }
 
   // returns each result in a ListTile
-  List<Widget> resultTiles() => solutions.map((solution) => solutionTile(solution)).toList();
+  List<Widget> resultTiles() => _solutions.map((solution) => solutionTile(solution)).toList();
 
-  Widget resultTile(int index) => solutionTile(solutions[index]);
+  Widget resultTile(int index) => solutionTile(_solutions[index]);
 
   // returns a value (number plus tag)
   Widget valueTile(Value v) {
@@ -233,11 +233,11 @@ class _MainPageState extends State<MainPage> {
       children: [
         Text(
           v.num.toString(),
-          style: numberStyle,
+          style: _numberStyle,
         ),
         Text(
           v.tag,
-          style: tagStyle,
+          style: _tagStyle,
         ),
       ],
     );
@@ -245,7 +245,7 @@ class _MainPageState extends State<MainPage> {
 
   Widget stepTile(SolutionStep step) {
     return Container(
-        margin: EdgeInsets.fromLTRB(0.0, 0.0, stepSeparation, verticalStepSeparation),
+        margin: EdgeInsets.fromLTRB(0.0, 0.0, _stepSeparation, _verticalStepSeparation),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -253,12 +253,12 @@ class _MainPageState extends State<MainPage> {
             valueTile(step.v1),
             Text(
               step.op.toString(),
-              style: numberStyle,
+              style: _numberStyle,
             ),
             valueTile(step.v2),
             Text(
               '=',
-              style: numberStyle,
+              style: _numberStyle,
             ),
             valueTile(step.result),
           ],
@@ -269,7 +269,7 @@ class _MainPageState extends State<MainPage> {
     final solutionWidgets = solution.steps.map<Widget>((step) => stepTile(step)).toList();
     solutionWidgets.add(Text(
       "(${solution.away} away)",
-      style: numberStyle,
+      style: _numberStyle,
     ));
     return Wrap(
       children: solutionWidgets,
@@ -278,10 +278,10 @@ class _MainPageState extends State<MainPage> {
 
   // is a particular button active?
   bool buttonActive(int srcNum) {
-    if (sourcesSelected.length >= numSourcesRequired) {
+    if (_sourcesSelected.length >= _numSourcesRequired) {
       return false;
     }
-    if (sourcesSelected.where((s) => s == srcNum).length >= sourcesMax[srcNum]) {
+    if (_sourcesSelected.where((s) => s == srcNum).length >= sourcesMax[srcNum]) {
       return false;
     }
     return true;
@@ -291,18 +291,18 @@ class _MainPageState extends State<MainPage> {
   void processButton(int srcNum) {
     if (buttonActive(srcNum)) {
       setState(() {
-        sourcesSelected.add(srcNum);
+        _sourcesSelected.add(srcNum);
       });
     }
   }
 
   // return that function that the solve/cancel button executes when tapped
   Function solveButtonAction() {
-    if (running) {
+    if (_running) {
       return killSolver;
     } else {
-      final readyToSolve = sourcesSelected.length == numSourcesRequired && targetNumber >= 100;
-      final sourcesIncludeTarget = sourcesSelected.any((n) => n == targetNumber);
+      final readyToSolve = _sourcesSelected.length == _numSourcesRequired && _targetNumber >= 100;
+      final sourcesIncludeTarget = _sourcesSelected.any((n) => n == _targetNumber);
       if (readyToSolve && !sourcesIncludeTarget) {
         return initSolver;
       } else {
@@ -314,19 +314,19 @@ class _MainPageState extends State<MainPage> {
   // remove just the last source number added
   void removeLast() {
     setState(() {
-      if (sourcesSelected.length > 0) {
-        sourcesSelected.removeLast();
+      if (_sourcesSelected.length > 0) {
+        _sourcesSelected.removeLast();
       }
-      solutions.clear();
+      _solutions.clear();
     });
   }
 
   // reset everything - remove any solutions, reset the target to zero and clear all the selected source numbers
   void resetPuzzle() {
     setState(() {
-      sourcesSelected.clear();
-      targetNumber = 0;
-      solutions.clear();
+      _sourcesSelected.clear();
+      _targetNumber = 0;
+      _solutions.clear();
       targetTextController.clear();
     });
   }
@@ -347,16 +347,16 @@ class _MainPageState extends State<MainPage> {
     assert(solution is Solution);
     if (solution is Solution) {
       // this makes it typesafe inside the if block
-      if (solutions.length > 0) {
-        if (solution.away < solutions.first.away) {
-          solutions.clear(); // this solution is better than the ones we have, dump everything
+      if (_solutions.length > 0) {
+        if (solution.away < _solutions.first.away) {
+          _solutions.clear(); // this solution is better than the ones we have, dump everything
         }
       }
-      solutions.add(solution);
+      _solutions.add(solution);
       // we sort only by the shortest solution since we've already eliminated any that are further away
-      solutions.sort((a, b) => a.steps.length.compareTo(b.steps.length));
-      while (solutions.length > maxSolutions) {
-        solutions.removeLast();
+      _solutions.sort((a, b) => a.steps.length.compareTo(b.steps.length));
+      while (_solutions.length > _maxSolutions) {
+        _solutions.removeLast();
       }
     }
   }
@@ -374,7 +374,7 @@ class _MainPageState extends State<MainPage> {
       }
     });
 
-    solver = await Isolate.spawn(solutionSender, fromSolver.sendPort);
+    _solver = await Isolate.spawn(solutionSender, fromSolver.sendPort);
     return completer.future;
   }
 
@@ -383,21 +383,21 @@ class _MainPageState extends State<MainPage> {
     setState(() {
       FocusScope.of(context).unfocus(); // dismiss the keyboard if possible
     });
-    solutions.clear();
-    sendToSolver = await startSolverListener();
+    _solutions.clear();
+    _sendToSolver = await startSolverListener();
     // we now have a running isolate and a port to send it the game
-    sendToSolver.send({'numbers': sourcesSelected, 'target': targetNumber});
+    _sendToSolver.send({'numbers': _sourcesSelected, 'target': _targetNumber});
     setState(() {
-      running = true;
+      _running = true;
     });
   }
 
   // kill the solver isolate if it's running then reset the running state
   void killSolver() {
     setState(() {
-      solver?.kill(priority: Isolate.immediate);
-      solver = null;
-      running = false;
+      _solver?.kill(priority: Isolate.immediate);
+      _solver = null;
+      _running = false;
     });
   }
 }
