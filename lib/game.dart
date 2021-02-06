@@ -40,7 +40,7 @@ class Game {
   }
 
   // try something with the top two numbers
-  Iterable<Solution> tryOp(int depth, Op op) sync* {
+  Iterable<Solution> _tryOp(int depth, Op op) sync* {
     final v2 = stack.removeLast();
     final v1 = stack.removeLast();
     final result = op.calc(v1, v2);
@@ -85,7 +85,7 @@ class Game {
     // if we have at least 2 numbers on the stack then we can try applying operations to them
     if (stack.length >= 2) {
       for (var op in allowedOps) {
-        yield* tryOp(depth, op);
+        yield* _tryOp(depth, op);
       }
     }
     // for (var i = 0; i < 10; ++i) {
