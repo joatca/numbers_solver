@@ -73,10 +73,12 @@ class _MainPageState extends State<MainPage> {
 
   // UI options
   static const _targetWidth = 120.0;
-  static const _dividerColor = Colors.black12;
+  Color _dividerColor;
   static const _dividerThickness = 2.0;
   static const _stepSeparation = 6.0;
   static const _verticalStepSeparation = 3.0;
+  Color _accentColor;
+  Color _sourceButtonBackgroundColor;
   static final _numberStyle = TextStyle(
     fontSize: 16,
   );
@@ -99,6 +101,9 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     _smallChipWidth = textWidth(_largestSmallSource);
     _largeChipWidth = textWidth(_largestSource);
+    _accentColor = Theme.of(context).accentColor;
+    _dividerColor = _accentColor.withOpacity(0.2);
+    _sourceButtonBackgroundColor = _accentColor.withOpacity(0.6);
     final clearable = _sourcesSelected.any((src) => src != null) || _targetNumber > 0;
     return Scaffold(
       appBar: AppBar(
@@ -115,7 +120,7 @@ class _MainPageState extends State<MainPage> {
             onPressed: clearable && !_running ? _removeLast : null,
           ),
           IconButton(
-            icon: _running ? const Icon(Icons.stop) : const Icon(Icons.calculate_outlined),
+            icon: _running ? const Icon(Icons.stop) : const Icon(Icons.play_arrow),
             tooltip: 'Solve',
             onPressed: _solveButtonAction(),
           )
@@ -161,7 +166,9 @@ class _MainPageState extends State<MainPage> {
           _sourceButtons(0, 5, _smallChipWidth),
           _sourceButtons(5, 10, _smallChipWidth),
           _sourceButtons(10, 14, _largeChipWidth),
+          _standardDivider(_dividerColor),
           _selectedDisplay(),
+          _standardDivider(_dividerColor),
           _targetField(),
         ],
       )
@@ -235,7 +242,8 @@ class _MainPageState extends State<MainPage> {
               onPressed: () {
                 processButton(srcNum);
               },
-              // backgroundColor: Theme.of(context).primaryColor,
+              backgroundColor: _sourceButtonBackgroundColor,
+                  
               label: Container(
                 alignment: Alignment.center,
                   width: width,
