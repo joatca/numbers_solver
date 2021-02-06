@@ -220,9 +220,6 @@ class _MainPageState extends State<MainPage> {
         }).toList());
   }
 
-  // returns each result in a ListTile
-  List<Widget> _resultTiles() => _solutions.map((solution) => _solutionTile(solution)).toList();
-
   Widget _resultTile(int index) => _solutionTile(_solutions[index]);
 
   // returns a value (number plus tag)
