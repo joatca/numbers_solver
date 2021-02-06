@@ -99,8 +99,8 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    _smallChipWidth = textWidth(_largestSmallSource);
-    _largeChipWidth = textWidth(_largestSource);
+    _smallChipWidth = textWidth(_largestSmallSource, _sourceButtonStyle);
+    _largeChipWidth = textWidth(_largestSource, _sourceButtonStyle);
     _dividerColor = Theme.of(context).textTheme.button.color.withOpacity(0.2);
     _accentColor = Theme.of(context).accentColor;
     _sourceButtonBackgroundColor = _accentColor.withOpacity(0.6);
@@ -307,9 +307,9 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  double textWidth(int number) {
+  double textWidth(int number, TextStyle style) {
     final Size size = (TextPainter(
-            text: TextSpan(text: number.toString(), style: _sourceButtonStyle),
+            text: TextSpan(text: number.toString(), style: style),
             maxLines: 1,
             textScaleFactor: MediaQuery.of(context).textScaleFactor,
             textDirection: TextDirection.ltr)
