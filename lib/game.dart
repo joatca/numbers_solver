@@ -88,10 +88,6 @@ class Game {
         yield* _tryOp(depth, op);
       }
     }
-    // for (var i = 0; i < 10; ++i) {
-    //   yield null;
-    //   sleep(Duration(seconds: 1));
-    // }
   }
 
 }
