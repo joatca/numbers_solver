@@ -22,10 +22,10 @@ import 'package:flutter/material.dart';
 import 'main_page.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(NumbersApp());
 }
 
-class MyApp extends StatelessWidget {
+class NumbersApp extends StatelessWidget {
   static const title = "Numbers Game Solver";
 
   @override
