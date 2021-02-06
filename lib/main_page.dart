@@ -95,8 +95,6 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    final clearable = sourcesSelected.any((src) => src != null) || targetNumber > 0;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -105,79 +103,21 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            sourceButtonBar(0, 5),
-            standardDivider(dividerColor),
-            sourceButtonBar(5, 10),
-            standardDivider(dividerColor),
-            sourceButtonBar(10, 14),
+            sourceButtons(0, 5),
+            sourceButtons(5, 10),
+            sourceButtons(10, 14),
             standardDivider(dividerColor),
             Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  Expanded(
-                      child: Text(
-                    sourcesSelected.length > 0 ? sourcesSelected.map((s) => s.toString()).join(' ') : '-',
-                    style: sourceButtonStyle,
-                        textAlign: TextAlign.center,
-                  )),
-                  Container(
-                    padding: EdgeInsets.fromLTRB(8.0, 8.0, 36.0, 8.0),
-                      width: targetWidth,
-                      child: TextField(
-                          maxLength: maxTargetLength,
-                          style: targetStyle,
-                          maxLines: 1,
-                          showCursor: true,
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          controller: targetTextController,
-                          decoration: InputDecoration(
-                            hintText: 'Target',
-                            border: const OutlineInputBorder(),
-                            contentPadding: EdgeInsets.all(1.0),
-                            counterText: '', // don't show the counter'
-                          ),
-                          onChanged: (String val) async {
-                            setState(() {
-                              if (val.length > 0) {
-                                targetNumber = int.parse(val);
-                              } else {
-                                targetNumber = 0;
-                              }
-                              solutions.clear();
-                            });
-                          })),
+                  selectedDisplay(),
+                  targetField(),
                 ]),
-            ButtonBar(
-              alignment: MainAxisAlignment.center,
-              children: [
-                TextButton.icon(
-                  onPressed: clearable && !running ? removeLast : null,
-                  onLongPress: clearable && !running ? resetPuzzle : null,
-                  label: Text(
-                    'Back',
-                    style: actionButtonStyle,
-                  ),
-                  icon: Icon(Icons.undo),
-                ),
-                TextButton.icon(
-                  onPressed: solveButtonAction(),
-                  label: Text(running ? 'Cancel' : 'Solve', style: actionButtonStyle),
-                  icon: Icon(Icons.play_arrow),
-                ),
-              ],
-            ),
+            actionButtonBar(),
             standardDivider(solutions.length > 0 ? dividerColor : Colors.transparent),
-            Expanded(
-              // don't understand yet how this works, but needed to stop squishing everything else
-              child: ListView.separated(
-                itemCount: solutions.length,
-                separatorBuilder: (BuildContext context, int index) => standardDivider(dividerColor),
-                itemBuilder: (BuildContext context, int index) => resultTile(index),
-              ),
-            ),
+            solutionList(),
           ],
         ),
       ),
@@ -190,7 +130,82 @@ class _MainPageState extends State<MainPage> {
         height: 2.0,
       );
 
-  Widget sourceButtonBar(int start, int end) {
+  // shows which numbers are currently selected
+  Widget selectedDisplay() {
+    return Expanded(
+        child: Text(
+      sourcesSelected.length > 0 ? sourcesSelected.map((s) => s.toString()).join(' ') : '-',
+      style: sourceButtonStyle,
+      textAlign: TextAlign.center,
+    ));
+  }
+
+  Widget targetField() {
+    return Container(
+        padding: EdgeInsets.fromLTRB(8.0, 8.0, 36.0, 8.0),
+        width: targetWidth,
+        child: TextField(
+            maxLength: maxTargetLength,
+            style: targetStyle,
+            maxLines: 1,
+            showCursor: true,
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            controller: targetTextController,
+            decoration: InputDecoration(
+              hintText: 'Target',
+              border: const OutlineInputBorder(),
+              contentPadding: EdgeInsets.all(1.0),
+              counterText: '', // don't show the counter'
+            ),
+            onChanged: (String val) async {
+              setState(() {
+                if (val.length > 0) {
+                  targetNumber = int.parse(val);
+                } else {
+                  targetNumber = 0;
+                }
+                solutions.clear();
+              });
+            }));
+  }
+
+  Widget actionButtonBar() {
+    final clearable = sourcesSelected.any((src) => src != null) || targetNumber > 0;
+
+    return ButtonBar(
+      alignment: MainAxisAlignment.center,
+      children: [
+        TextButton.icon(
+          onPressed: clearable && !running ? removeLast : null,
+          onLongPress: clearable && !running ? resetPuzzle : null,
+          label: Text(
+            'Back',
+            style: actionButtonStyle,
+          ),
+          icon: Icon(Icons.undo),
+        ),
+        TextButton.icon(
+          onPressed: solveButtonAction(),
+          label: Text(running ? 'Cancel' : 'Solve', style: actionButtonStyle),
+          icon: Icon(Icons.play_arrow),
+        ),
+      ],
+    );
+  }
+
+  Widget solutionList() {
+    return Expanded(
+      // don't understand yet how this works, but needed to stop squishing everything else
+      child: ListView.separated(
+        itemCount: solutions.length,
+        separatorBuilder: (BuildContext context, int index) => standardDivider(dividerColor),
+        itemBuilder: (BuildContext context, int index) => resultTile(index),
+      ),
+    );
+  }
+
+  Widget sourceButtons(int start, int end) {
     return ButtonBar(
         alignment: MainAxisAlignment.center,
         children: distinctSources.getRange(start, end).map<Widget>((srcNum) {
