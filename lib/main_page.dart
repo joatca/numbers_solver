@@ -64,11 +64,6 @@ class _MainPageState extends State<MainPage> {
   // the actual target number
   var targetNumber = 0;
 
-  // static final smallNumbers = List.generate(10, (i) => i + 1);
-  // static final bigNumbers = [25, 50, 75, 100];
-  // static final sourceNumbers = smallNumbers + smallNumbers + bigNumbers;
-  // var sourceSelected = sourceNumbers.map((e) => false).toList(growable: false);
-
   TextEditingController targetTextController = TextEditingController();
 
   // UI options
@@ -84,14 +79,13 @@ class _MainPageState extends State<MainPage> {
     fontSize: 8,
     fontStyle: FontStyle.italic,
   );
-  static final dropDownStyle = TextStyle(
-    fontSize: 12,
-    color: Colors.black,
-  );
   static final targetStyle = TextStyle(
     fontSize: 20,
   );
-  static final buttonStyle = TextStyle(
+  static final sourceButtonStyle = TextStyle(
+    fontSize: 20,
+  );
+  static final actionButtonStyle = TextStyle(
     fontSize: 24,
   );
   List<Solution> solutions = [];
@@ -102,12 +96,6 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     final clearable = sourcesSelected.any((src) => src != null) || targetNumber > 0;
-    final sourcesDropdowns = distinctSources.map<DropdownMenuItem<int>>((sourceNumber) {
-      return DropdownMenuItem<int>(
-        value: sourceNumber,
-        child: Text(sourceNumber.toString(), style: dropDownStyle),
-      );
-    }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -117,79 +105,76 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            Wrap(
-              children: distinctSources.map<Widget>((srcNum) {
-                return TextButton(
-                    onPressed: buttonActive(srcNum)
-                        ? (() {
-                            processButton(srcNum);
-                          })
-                        : null,
-                    child: Text(
-                      srcNum.toString(),
-                      style: numberStyle,
-                    ));
-              }).toList(),
-            ),
-            Text(
-              sourcesSelected.toString(),
-            ),
-            // numberRow(0, smallNumbers.length),
-            // numberRow(smallNumbers.length, smallNumbers.length),
-            // numberRow(smallNumbers.length * 2, bigNumbers.length),
-            Container(
-                width: targetWidth,
-                child: TextField(
-                    maxLength: maxTargetLength,
-                    style: targetStyle,
-                    maxLines: 1,
-                    showCursor: true,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    controller: targetTextController,
-                    decoration: InputDecoration(
-                      hintText: 'Target',
-                      border: const OutlineInputBorder(),
-                      contentPadding: EdgeInsets.all(1.0),
-                      counterText: '', // don't show the counter'
-                    ),
-                    onChanged: (String val) async {
-                      setState(() {
-                        if (val.length > 0) {
-                          targetNumber = int.parse(val);
-                        } else {
-                          targetNumber = 0;
-                        }
-                      });
-                    })),
+            sourceButtonBar(0, 5),
+            standardDivider(dividerColor),
+            sourceButtonBar(5, 10),
+            standardDivider(dividerColor),
+            sourceButtonBar(10, 14),
+            standardDivider(dividerColor),
+            Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Expanded(
+                      child: Text(
+                    sourcesSelected.length > 0 ? sourcesSelected.map((s) => s.toString()).join(' ') : '-',
+                    style: sourceButtonStyle,
+                        textAlign: TextAlign.center,
+                  )),
+                  Container(
+                    padding: EdgeInsets.fromLTRB(8.0, 8.0, 36.0, 8.0),
+                      width: targetWidth,
+                      child: TextField(
+                          maxLength: maxTargetLength,
+                          style: targetStyle,
+                          maxLines: 1,
+                          showCursor: true,
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          controller: targetTextController,
+                          decoration: InputDecoration(
+                            hintText: 'Target',
+                            border: const OutlineInputBorder(),
+                            contentPadding: EdgeInsets.all(1.0),
+                            counterText: '', // don't show the counter'
+                          ),
+                          onChanged: (String val) async {
+                            setState(() {
+                              if (val.length > 0) {
+                                targetNumber = int.parse(val);
+                              } else {
+                                targetNumber = 0;
+                              }
+                              solutions.clear();
+                            });
+                          })),
+                ]),
             ButtonBar(
               alignment: MainAxisAlignment.center,
               children: [
-                TextButton(
-                  onPressed: clearable && !running ? resetPuzzle : null,
-                  child: Text(
-                    'Clear',
-                    style: buttonStyle,
+                TextButton.icon(
+                  onPressed: clearable && !running ? removeLast : null,
+                  onLongPress: clearable && !running ? resetPuzzle : null,
+                  label: Text(
+                    'Back',
+                    style: actionButtonStyle,
                   ),
+                  icon: Icon(Icons.undo),
                 ),
-                TextButton(
+                TextButton.icon(
                   onPressed: solveButtonAction(),
-                  child: Text(running ? 'Cancel' : 'Solve', style: buttonStyle),
+                  label: Text(running ? 'Cancel' : 'Solve', style: actionButtonStyle),
+                  icon: Icon(Icons.play_arrow),
                 ),
               ],
             ),
-            Divider(
-              color: solutions.length > 0 ? dividerColor : Colors.transparent,
-              thickness: dividerThickness,
-            ),
+            standardDivider(solutions.length > 0 ? dividerColor : Colors.transparent),
             Expanded(
               // don't understand yet how this works, but needed to stop squishing everything else
               child: ListView.separated(
                 itemCount: solutions.length,
-                separatorBuilder: (BuildContext context, int index) => Divider(
-                  thickness: dividerThickness,
-                  color: dividerColor,
-                ),
+                separatorBuilder: (BuildContext context, int index) => standardDivider(dividerColor),
                 itemBuilder: (BuildContext context, int index) => resultTile(index),
               ),
             ),
@@ -199,24 +184,26 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  // composite widget functions
+  Divider standardDivider(Color color) => Divider(
+        thickness: dividerThickness,
+        color: dividerColor,
+        height: 2.0,
+      );
 
-  // returns a row of source number chips given by the offset and length
-  // Widget numberRow(int offset, int length) {
-  //   return Center(
-  //       child: Row(
-  //           mainAxisAlignment: MainAxisAlignment.center,
-  //           children: Iterable.generate(length, (i) => i + offset)
-  //               .map((n) => ActionChip(
-  //                     label: Text(
-  //                       chipFormat.format(sourceNumbers[n]),
-  //                       style: numberStyle,
-  //                     ),
-  //                     onPressed: () => toggleNumber(n),
-  //                     backgroundColor: sourceSelected[n] ? Colors.blueAccent : Colors.white,
-  //                   ))
-  //               .toList()));
-  // }
+  Widget sourceButtonBar(int start, int end) {
+    return ButtonBar(
+        alignment: MainAxisAlignment.center,
+        children: distinctSources.getRange(start, end).map<Widget>((srcNum) {
+          return ElevatedButton(
+              onPressed: () {
+                processButton(srcNum);
+              },
+              child: Text(
+                srcNum.toString(),
+                style: sourceButtonStyle,
+              ));
+        }).toList());
+  }
 
   // returns each result in a ListTile
   List<Widget> resultTiles() => solutions.map((solution) => solutionTile(solution)).toList();
@@ -287,9 +274,11 @@ class _MainPageState extends State<MainPage> {
 
   // action to take when the button labelled srcNum is pressed
   void processButton(int srcNum) {
-    setState(() {
-      sourcesSelected.add(srcNum);
-    });
+    if (buttonActive(srcNum)) {
+      setState(() {
+        sourcesSelected.add(srcNum);
+      });
+    }
   }
 
   // return that function that the solve/cancel button executes when tapped
@@ -297,7 +286,7 @@ class _MainPageState extends State<MainPage> {
     if (running) {
       return killSolver;
     } else {
-      final readyToSolve = sourcesSelected.every((src) => src != null) && targetNumber >= 100;
+      final readyToSolve = sourcesSelected.length == numSourcesRequired && targetNumber >= 100;
       final sourcesIncludeTarget = sourcesSelected.any((n) => n == targetNumber);
       if (readyToSolve && !sourcesIncludeTarget) {
         return initSolver;
@@ -305,6 +294,16 @@ class _MainPageState extends State<MainPage> {
         return null;
       }
     }
+  }
+
+  // remove just the last source number added
+  void removeLast() {
+    setState(() {
+      if (sourcesSelected.length > 0) {
+        sourcesSelected.removeLast();
+      }
+      solutions.clear();
+    });
   }
 
   // reset everything - remove any solutions, reset the target to zero and clear all the selected source numbers
