@@ -51,19 +51,27 @@ class _MainPageState extends State<MainPage> {
     75: 1,
     100: 1,
   };
+  // all possible source numbers
   static final distinctSources = sourcesMax.keys.toList();
+  // number of sources required before allowing a solve
   static const numSourcesRequired = 6;
-  List<int> sourcesSelected = List.filled(numSourcesRequired, 1);
-  List<int> sourceIndexes = List.generate(numSourcesRequired, (index) => index);
-
-  static final smallNumbers = List.generate(10, (i) => i + 1);
-  static final bigNumbers = [25, 50, 75, 100];
-  static final sourceNumbers = smallNumbers + smallNumbers + bigNumbers;
-  var sourceSelected = sourceNumbers.map((e) => false).toList(growable: false);
+  // which sources have been selected
+  List<int> sourcesSelected = [];
+  // maximum length of the target word, used for the textfield
   static const maxTargetLength = 3;
+  // maximum number of solutions to store
   static const maxSolutions = 20; // plenty of options
+  // the actual target number
   var targetNumber = 0;
+
+  // static final smallNumbers = List.generate(10, (i) => i + 1);
+  // static final bigNumbers = [25, 50, 75, 100];
+  // static final sourceNumbers = smallNumbers + smallNumbers + bigNumbers;
+  // var sourceSelected = sourceNumbers.map((e) => false).toList(growable: false);
+
   TextEditingController targetTextController = TextEditingController();
+
+  // UI options
   static const targetWidth = 120.0;
   static const dividerColor = Colors.black12;
   static const dividerThickness = 2.0;
@@ -109,24 +117,18 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            Row(
-              children: sourceIndexes.map<Widget>((index) {
-                return DropdownButton<int>(
-                  value: sourcesSelected[index],
-                  hint: Text('num', style: dropDownStyle),
-                  //icon: Icon(Icons.arrow_downward),
-                  style: dropDownStyle,
-                  underline: Container(
-                    height: 2,
-                    color: dividerColor,
-                  ),
-                  onChanged: (int newValue) {
-                    setState(() {
-                      sourcesSelected[index] = newValue;
-                    });
-                  },
-                  items: sourcesDropdowns,
-                );
+            Wrap(
+              children: distinctSources.map<Widget>((srcNum) {
+                return TextButton(
+                    onPressed: buttonActive(srcNum)
+                        ? (() {
+                            processButton(srcNum);
+                          })
+                        : null,
+                    child: Text(
+                      srcNum.toString(),
+                      style: numberStyle,
+                    ));
               }).toList(),
             ),
             Text(
@@ -272,9 +274,23 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  // which numbers may be selected as dropdowns at the moment?
-  // Iterable<int> validSources() => distinctSources
-  //     .where((source) => sourcesSelected.fold<int>(0, (acc, selected) => acc + source == selected ? 1 : 0) < sourcesMax[source]);
+  // is a particular button active?
+  bool buttonActive(int srcNum) {
+    if (sourcesSelected.length >= numSourcesRequired) {
+      return false;
+    }
+    if (sourcesSelected.where((s) => s == srcNum).length >= sourcesMax[srcNum]) {
+      return false;
+    }
+    return true;
+  }
+
+  // action to take when the button labelled srcNum is pressed
+  void processButton(int srcNum) {
+    setState(() {
+      sourcesSelected.add(srcNum);
+    });
+  }
 
   // return that function that the solve/cancel button executes when tapped
   Function solveButtonAction() {
@@ -291,39 +307,15 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  // when a source number is tapped, toggle its state, unless that's not allowed
-  // void toggleNumber(int n) {
-  //   if (!running) {
-  //     setState(() {
-  //       if (sourceSelected[n]) {
-  //         // it is currently selected, deselect it
-  //         sourceSelected[n] = false;
-  //       } else {
-  //         // not selected, select it only if we don't already have 6 selected
-  //         if (countSelected() < sourceRequired) {
-  //           sourceSelected[n] = true;
-  //         }
-  //       }
-  //       numbers =
-  //           Iterable.generate(sourceNumbers.length, (i) => i).where((i) => sourceSelected[i]).map((i) => sourceNumbers[i]).toList();
-  //     });
-  //   }
-  // }
-
   // reset everything - remove any solutions, reset the target to zero and clear all the selected source numbers
   void resetPuzzle() {
     setState(() {
-      sourceSelected.fillRange(0, sourceSelected.length, false);
+      sourcesSelected.clear();
       targetNumber = 0;
       solutions.clear();
       targetTextController.clear();
     });
   }
-
-  // how many source numbers are selected? - since we maintain the state of the numbers list then it's just the length
-  // int countSelected() {
-  //   return numbers.length;
-  // }
 
   // solutionSender sends a null once the search is complete; if so then kill it, otherwise add the solution it just found
   void receiveSolution(data) {
