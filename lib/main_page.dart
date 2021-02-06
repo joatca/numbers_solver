@@ -90,9 +90,6 @@ class _MainPageState extends State<MainPage> {
   static final _sourceButtonStyle = TextStyle(
     fontSize: 20,
   );
-  static final _actionButtonStyle = TextStyle(
-    fontSize: 24,
-  );
   List<Solution> _solutions = [];
   Isolate _solver;
   SendPort _sendToSolver;
@@ -102,9 +99,27 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     _smallChipWidth = textWidth(_largestSmallSource);
     _largeChipWidth = textWidth(_largestSource);
+    final clearable = _sourcesSelected.any((src) => src != null) || _targetNumber > 0;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: <Widget> [
+          IconButton(
+            icon: const Icon(Icons.clear),
+            tooltip: 'Clear',
+            onPressed: clearable && !_running ? _resetPuzzle : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.undo),
+            tooltip: 'Undo number',
+            onPressed: clearable && !_running ? _removeLast : null,
+          ),
+          IconButton(
+            icon: _running ? const Icon(Icons.stop) : const Icon(Icons.calculate_outlined),
+            tooltip: 'Solve',
+            onPressed: _solveButtonAction(),
+          )
+        ]
       ),
       body: OrientationBuilder(
           builder: (context, orientation) => orientation == Orientation.portrait ? _verticalLayout() : _horizontalLayout()),
@@ -116,7 +131,7 @@ class _MainPageState extends State<MainPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
-          _actionButtonBar(),
+          // _actionButtonBar(),
           _sourceButtons(0, 5, _smallChipWidth),
           _sourceButtons(5, 10, _smallChipWidth),
           _sourceButtons(10, 14, _largeChipWidth),
@@ -142,7 +157,7 @@ class _MainPageState extends State<MainPage> {
       Column(
         // full contents of right section
         children: [
-          _actionButtonBar(),
+          // _actionButtonBar(),
           _sourceButtons(0, 5, _smallChipWidth),
           _sourceButtons(5, 10, _smallChipWidth),
           _sourceButtons(10, 14, _largeChipWidth),
@@ -197,30 +212,6 @@ class _MainPageState extends State<MainPage> {
                 _solutions.clear();
               });
             }));
-  }
-
-  Widget _actionButtonBar() {
-    final clearable = _sourcesSelected.any((src) => src != null) || _targetNumber > 0;
-
-    return ButtonBar(
-      alignment: MainAxisAlignment.center,
-      children: [
-        TextButton.icon(
-          onPressed: clearable && !_running ? _removeLast : null,
-          onLongPress: clearable && !_running ? _resetPuzzle : null,
-          label: Text(
-            'Back',
-            style: _actionButtonStyle,
-          ),
-          icon: Icon(Icons.undo),
-        ),
-        TextButton.icon(
-          onPressed: _solveButtonAction(),
-          label: Text(_running ? 'Cancel' : 'Solve', style: _actionButtonStyle),
-          icon: Icon(Icons.play_arrow),
-        ),
-      ],
-    );
   }
 
   Widget _solutionList() {
