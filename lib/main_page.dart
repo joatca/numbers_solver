@@ -81,7 +81,7 @@ class _MainPageState extends State<MainPage> {
     _dividerColor = Theme.of(context).textTheme.button.color.withOpacity(0.2);
     _accentColor = Theme.of(context).accentColor;
     _sourceButtonBackgroundColor = _accentColor.withOpacity(0.6);
-    final clearable = _sourcesSelected.any((src) => src != null) || _targetNumber > 0;
+    final clearable = _sourcesSelected.any((i) => i) || _targetNumber > 0;
     return Scaffold(
       appBar: AppBar(title: Text(widget.title), actions: <Widget>[
         IconButton(
