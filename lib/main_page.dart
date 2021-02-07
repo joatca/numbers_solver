@@ -23,6 +23,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:numbers_solver/game_classes.dart';
 import 'solution_sender.dart';
+import 'info_page.dart';
 
 class MainPage extends StatefulWidget {
   MainPage({Key key, this.title}) : super(key: key);
@@ -91,6 +92,16 @@ class _MainPageState extends State<MainPage> {
             tooltip: 'Clear',
             onPressed: clearable ? _resetPuzzle : null,
           ),
+          IconButton(
+            icon: Icon(Icons.info_outline),
+            tooltip: 'About',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => InfoPage()),
+              );
+            },
+          )
         ]),
         body: ChipTheme(
           data: ChipTheme.of(context).copyWith(shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10)))),
