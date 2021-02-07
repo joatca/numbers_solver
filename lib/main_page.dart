@@ -34,35 +34,14 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  static final List<int> _one2ten = Iterable.generate(10, (i) => i+1).toList();
   // how many of each source number are allowed
-  static final Map<int, int> sourcesMaxAllowed = {
-    1: 2,
-    2: 2,
-    3: 2,
-    4: 2,
-    5: 2,
-    6: 2,
-    7: 2,
-    8: 2,
-    9: 2,
-    10: 2,
-    25: 1,
-    50: 1,
-    75: 1,
-    100: 1,
-  };
-  // all possible source numbers
-  static final _distinctSources = sourcesMaxAllowed.keys.toList();
-  // find the largest source number (and we'll assume it's also the widest)
-  static final _largestSmallSource = 10;
-  static final _largestSource = 100;
-  double _smallChipWidth;
-  double _largeChipWidth;
+  static final List<int> _sourcesAllowed = _one2ten + _one2ten + [25, 50, 75, 100];
+  // which sources are currently selected?
+  List<bool> _sourcesSelected = List<bool>.filled(_sourcesAllowed.length, false);
   // number of sources required before allowing a solve
   static const _numSourcesRequired = 6;
-  // which sources have been selected
-  List<int> _sourcesSelected = [];
-  // maximum length of the target word, used for the textfield
+  // maximum length of the target number, used for the textfield
   static const _maxTargetLength = 3;
   // maximum number of solutions to store
   static const _maxSolutions = 20; // plenty of options
@@ -90,7 +69,7 @@ class _MainPageState extends State<MainPage> {
     fontSize: 20,
   );
   static final _sourceButtonStyle = TextStyle(
-    fontSize: 20,
+    fontSize: 15
   );
   List<Solution> _solutions = [];
   Isolate _solver;
@@ -99,35 +78,20 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    _smallChipWidth = textWidth(_largestSmallSource, _sourceButtonStyle);
-    _largeChipWidth = textWidth(_largestSource, _sourceButtonStyle);
     _dividerColor = Theme.of(context).textTheme.button.color.withOpacity(0.2);
     _accentColor = Theme.of(context).accentColor;
     _sourceButtonBackgroundColor = _accentColor.withOpacity(0.6);
     final clearable = _sourcesSelected.any((src) => src != null) || _targetNumber > 0;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: <Widget> [
-          IconButton(
-            icon: const Icon(Icons.clear),
-            tooltip: 'Clear',
-            onPressed: clearable ? _resetPuzzle : null,
-          ),
-          IconButton(
-            icon: const Icon(Icons.undo),
-            tooltip: 'Undo number',
-            onPressed: clearable ?_removeLast : null,
-          ),
-          // IconButton(
-          //   icon: _running ? const Icon(Icons.stop) : const Icon(Icons.play_arrow),
-          //   tooltip: 'Solve',
-          //   onPressed: _solveButtonAction(),
-          // )
-        ]
-      ),
+      appBar: AppBar(title: Text(widget.title), actions: <Widget>[
+        IconButton(
+          icon: const Icon(Icons.clear),
+          tooltip: 'Clear',
+          onPressed: clearable ? _resetPuzzle : null,
+        ),
+      ]),
       body: OrientationBuilder(
-          builder: (context, orientation) => orientation == Orientation.portrait ? _verticalLayout() : _horizontalLayout()),
+          builder: (context, orientation) => orientation == Orientation.portrait ? _verticalLayout() : _verticalLayout()),
     );
   }
 
@@ -137,18 +101,24 @@ class _MainPageState extends State<MainPage> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
           // _actionButtonBar(),
-          _sourceButtons(0, 5, _smallChipWidth),
-          _sourceButtons(5, 10, _smallChipWidth),
-          _sourceButtons(10, 14, _largeChipWidth),
+          // _sourceButtons(0, 5, _smallChipWidth),
+          // _sourceButtons(5, 10, _smallChipWidth),
+          // _sourceButtons(10, 14, _largeChipWidth),
+          Wrap(
+            children: _availableChips(),
+          ),
           _standardDivider(_dividerColor),
-          Row(
+          Flexible(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.max,
               children: [
-                _selectedDisplay(),
+                Wrap(
+                  children: _selectedChips(),
+                ),
                 _targetField(),
-              ]),
+              ])),
           _standardDivider(_solutions.length > 0 ? _dividerColor : Colors.transparent),
           _solutionList(),
         ],
@@ -156,24 +126,27 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _horizontalLayout() {
-    return Row(children: [
-      _solutionList(),
-      Column(
-        // full contents of right section
-        children: [
-          // _actionButtonBar(),
-          _sourceButtons(0, 5, _smallChipWidth),
-          _sourceButtons(5, 10, _smallChipWidth),
-          _sourceButtons(10, 14, _largeChipWidth),
-          _standardDivider(_dividerColor),
-          _selectedDisplay(),
-          _standardDivider(_dividerColor),
-          _targetField(),
-        ],
-      )
-    ]);
-  }
+  // Widget _horizontalLayout() {
+  //   return Row(children: [
+  //     _solutionList(),
+  //     Column(
+  //       // full contents of right section
+  //       children: [
+  //         // _actionButtonBar(),
+  //         // _sourceButtons(0, 5, _smallChipWidth),
+  //         // _sourceButtons(5, 10, _smallChipWidth),
+  //         // _sourceButtons(10, 14, _largeChipWidth),
+  //         Wrap(
+  //           children: _availableChips(),
+  //         ),
+  //         _standardDivider(_dividerColor),
+  //         _selectedDisplay(1),
+  //         _standardDivider(_dividerColor),
+  //         _targetField(),
+  //       ],
+  //     )
+  //   ]);
+  // }
 
   Divider _standardDivider(Color color) => Divider(
         thickness: _dividerThickness,
@@ -181,45 +154,37 @@ class _MainPageState extends State<MainPage> {
         height: 2.0,
       );
 
-  // shows which numbers are currently selected
-  Widget _selectedDisplay() {
-    return Expanded(
-        child: Text(
-      _sourcesSelected.length > 0 ? _sourcesSelected.map((s) => s.toString()).join(' ') : '-',
-      style: _sourceButtonStyle,
-      textAlign: TextAlign.center,
-    ));
-  }
-
   Widget _targetField() {
-    return Container(
-        padding: EdgeInsets.fromLTRB(8.0, 8.0, 36.0, 8.0),
-        width: _targetWidth,
-        child: TextField(
-            maxLength: _maxTargetLength,
-            style: _targetStyle,
-            maxLines: 1,
-            showCursor: true,
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            controller: targetTextController,
-            decoration: InputDecoration(
-              hintText: 'Target',
-              border: const OutlineInputBorder(),
-              contentPadding: EdgeInsets.all(1.0),
-              counterText: '', // don't show the counter'
-            ),
-            onChanged: (String val) async {
-              setState(() {
-                if (val.length > 0) {
-                  _targetNumber = int.parse(val);
-                } else {
-                  _targetNumber = 0;
-                }
-                _solutions.clear();
-                maybeSolve();
-              });
-            }));
+    return Flexible(
+        flex: 1,
+        child: Container(
+            padding: EdgeInsets.all(8.0),
+            width: _targetWidth,
+            child: TextField(
+                maxLength: _maxTargetLength,
+                style: _targetStyle,
+                maxLines: 1,
+                showCursor: true,
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                controller: targetTextController,
+                decoration: InputDecoration(
+                  hintText: 'Target',
+                  border: const OutlineInputBorder(),
+                  contentPadding: EdgeInsets.all(1.0),
+                  counterText: '', // don't show the counter'
+                ),
+                onChanged: (String val) async {
+                  setState(() {
+                    if (val.length > 0) {
+                      _targetNumber = int.parse(val);
+                    } else {
+                      _targetNumber = 0;
+                    }
+                    _solutions.clear();
+                    maybeSolve();
+                  });
+                })));
   }
 
   Widget _solutionList() {
@@ -233,28 +198,52 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _sourceButtons(int start, int end, double width) {
-    return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: _distinctSources.getRange(start, end).map<Widget>((srcNum) {
-          return Container(
-            padding: EdgeInsets.only(left: 4.0, right: 4.0),
-              child: ActionChip(
-              onPressed: () {
-                processButton(srcNum);
-              },
+  // all the list indexes of allowed source numbers
+  Iterable<int> _allIndexes() => Iterable.generate(_sourcesAllowed.length, (i) => i);
+
+  // all the indexes of as-yet unselected source numbers
+  Iterable <int> _availableIndexes() => _allIndexes().where((i) => !_sourcesSelected[i]);
+
+  // all the indexes of select source numbers
+  Iterable <int> _selectedIndexes() => _allIndexes().where((i) => _sourcesSelected[i]);
+  
+  // all the selected numbers
+  Iterable<int> _selectedNumbers() => _selectedIndexes().map((i) => _sourcesAllowed[i]);
+
+  // how many are selected? not exactly efficient but meh
+  int _countSelected() => _selectedIndexes().length;
+
+  // converts a source number index to a chip with the given tap action
+  Widget _numberChip(int index, Function action) {
+    return Container(
+          padding: EdgeInsets.only(left: 4.0, right: 4.0),
+          child: ActionChip(
+              onPressed: action,
               backgroundColor: _sourceButtonBackgroundColor,
-                  
-              label: Container(
-                alignment: Alignment.center,
-                  width: width,
-                  child: Text(
-                    srcNum.toString(),
+              label: Text(
+                    _sourcesAllowed[index].toString(),
                     style: _sourceButtonStyle,
-                  ))));
-        }).toList());
+                  )));
+  }
+  
+  List<Widget> _availableChips() {
+    return _availableIndexes().map<Widget>((index) {
+      return _numberChip(
+          index, () {
+        addSource(index);
+      });
+    }).toList();
   }
 
+  List<Widget> _selectedChips() {
+    return _selectedIndexes().map<Widget>((index) {
+      return _numberChip(
+          index, () {
+        removeSource(index);
+      });
+    }).toList();
+  }
+  
   Widget _resultTile(int index) => _solutionTile(_solutions[index]);
 
   // returns a value (number plus tag)
@@ -319,48 +308,44 @@ class _MainPageState extends State<MainPage> {
     return size.width;
   }
 
-  // is a particular button active?
-  bool _buttonActive(int srcNum) {
-    if (_sourcesSelected.length >= _numSourcesRequired) {
-      return false;
-    }
-    if (_sourcesSelected.where((s) => s == srcNum).length >= sourcesMaxAllowed[srcNum]) {
-      return false;
-    }
-    return true;
+  // // is a particular button active?
+  // bool _buttonActive(int srcNum) {
+  //   if (_sourcesSelected.length >= _numSourcesRequired) {
+  //     return false;
+  //   }
+  //   if (_sourcesSelected.where((s) => s == srcNum).length >= sourcesMaxAllowed[srcNum]) {
+  //     return false;
+  //   }
+  //   return true;
+  // }
+
+  // action to take when a source chip is pressed
+  void addSource(int index) {
+    setState(() {
+      _sourcesSelected[index] = true;
+      maybeSolve();
+    });
   }
 
-  // action to take when the button labelled srcNum is pressed
-  void processButton(int srcNum) {
-    if (_buttonActive(srcNum)) {
-      setState(() {
-        _sourcesSelected.add(srcNum);
-        maybeSolve();
-      });
-    }
-  }
+
+// action to take when a selected chip is pressed
+void removeSource(int index) {
+  setState(() {
+    _sourcesSelected[index] = false;
+    maybeSolve();
+  });
+}
 
   void maybeSolve() {
     if (_running) {
       _killSolver();
     } else {
-            final readyToSolve = _sourcesSelected.length == _numSourcesRequired && _targetNumber >= 100;
-      final sourcesIncludeTarget = _sourcesSelected.any((n) => n == _targetNumber);
-if (readyToSolve && !sourcesIncludeTarget) {
-  _initSolver();
-            }
-    }
-  }
-
-  // remove just the last source number added
-  void _removeLast() {
-    setState(() {
-      if (_sourcesSelected.length > 0) {
-        _sourcesSelected.removeLast();
+      final readyToSolve = _countSelected() == _numSourcesRequired && _targetNumber >= 100;
+      final sourcesIncludeTarget = _selectedIndexes().any((i) => _sourcesAllowed[i] == _targetNumber);
+      if (readyToSolve && !sourcesIncludeTarget) {
+        _initSolver();
       }
-      _solutions.clear();
-      _killSolver();
-    });
+    }
   }
 
   // reset everything - remove any solutions, reset the target to zero and clear all the selected source numbers
@@ -368,7 +353,7 @@ if (readyToSolve && !sourcesIncludeTarget) {
     setState(() {
       _killSolver();
       _targetNumber = 0;
-      _sourcesSelected.clear();
+      _selectedIndexes().forEach((i) { _sourcesSelected[i] = false; });
       _solutions.clear();
       targetTextController.clear();
     });
@@ -429,7 +414,7 @@ if (readyToSolve && !sourcesIncludeTarget) {
     _solutions.clear();
     _sendToSolver = await _startSolverListener();
     // we now have a running isolate and a port to send it the game
-    _sendToSolver.send({'numbers': _sourcesSelected, 'target': _targetNumber});
+    _sendToSolver.send({'numbers': _selectedNumbers().toList(), 'target': _targetNumber});
     setState(() {
       _running = true;
     });
