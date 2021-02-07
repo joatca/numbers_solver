@@ -112,18 +112,18 @@ class _MainPageState extends State<MainPage> {
           IconButton(
             icon: const Icon(Icons.clear),
             tooltip: 'Clear',
-            onPressed: clearable && !_running ? _resetPuzzle : null,
+            onPressed: clearable ? _resetPuzzle : null,
           ),
           IconButton(
             icon: const Icon(Icons.undo),
             tooltip: 'Undo number',
-            onPressed: clearable && !_running ? _removeLast : null,
+            onPressed: clearable ?_removeLast : null,
           ),
-          IconButton(
-            icon: _running ? const Icon(Icons.stop) : const Icon(Icons.play_arrow),
-            tooltip: 'Solve',
-            onPressed: _solveButtonAction(),
-          )
+          // IconButton(
+          //   icon: _running ? const Icon(Icons.stop) : const Icon(Icons.play_arrow),
+          //   tooltip: 'Solve',
+          //   onPressed: _solveButtonAction(),
+          // )
         ]
       ),
       body: OrientationBuilder(
@@ -217,6 +217,7 @@ class _MainPageState extends State<MainPage> {
                   _targetNumber = 0;
                 }
                 _solutions.clear();
+                maybeSolve();
               });
             }));
   }
@@ -334,7 +335,20 @@ class _MainPageState extends State<MainPage> {
     if (_buttonActive(srcNum)) {
       setState(() {
         _sourcesSelected.add(srcNum);
+        maybeSolve();
       });
+    }
+  }
+
+  void maybeSolve() {
+    if (_running) {
+      _killSolver();
+    } else {
+            final readyToSolve = _sourcesSelected.length == _numSourcesRequired && _targetNumber >= 100;
+      final sourcesIncludeTarget = _sourcesSelected.any((n) => n == _targetNumber);
+if (readyToSolve && !sourcesIncludeTarget) {
+  _initSolver();
+            }
     }
   }
 
@@ -360,14 +374,16 @@ class _MainPageState extends State<MainPage> {
         _sourcesSelected.removeLast();
       }
       _solutions.clear();
+      _killSolver();
     });
   }
 
   // reset everything - remove any solutions, reset the target to zero and clear all the selected source numbers
   void _resetPuzzle() {
     setState(() {
-      _sourcesSelected.clear();
+      _killSolver();
       _targetNumber = 0;
+      _sourcesSelected.clear();
       _solutions.clear();
       targetTextController.clear();
     });
