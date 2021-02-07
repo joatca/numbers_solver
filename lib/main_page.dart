@@ -352,21 +352,6 @@ if (readyToSolve && !sourcesIncludeTarget) {
     }
   }
 
-  // return that function that the solve/cancel button executes when tapped
-  Function _solveButtonAction() {
-    if (_running) {
-      return _killSolver;
-    } else {
-      final readyToSolve = _sourcesSelected.length == _numSourcesRequired && _targetNumber >= 100;
-      final sourcesIncludeTarget = _sourcesSelected.any((n) => n == _targetNumber);
-      if (readyToSolve && !sourcesIncludeTarget) {
-        return _initSolver;
-      } else {
-        return null;
-      }
-    }
-  }
-
   // remove just the last source number added
   void _removeLast() {
     setState(() {
