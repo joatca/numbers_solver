@@ -115,7 +115,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
         body: ChipTheme(
           data: ChipTheme.of(context).copyWith(shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10)))),
           child: OrientationBuilder(
-              builder: (context, orientation) => orientation == Orientation.portrait ? _verticalLayout() : _verticalLayout()),
+              builder: (context, orientation) => orientation == Orientation.portrait ? _verticalLayout() : _horizontalLayout()),
         ));
   }
 
@@ -135,27 +135,24 @@ class _MainPageState extends State<MainPage> with TextUtil {
     );
   }
 
-  // Widget _horizontalLayout() {
-  //   return Row(children: [
-  //     _solutionList(),
-  //     Column(
-  //       // full contents of right section
-  //       children: [
-  //         // _actionButtonBar(),
-  //         // _sourceButtons(0, 5, _smallChipWidth),
-  //         // _sourceButtons(5, 10, _smallChipWidth),
-  //         // _sourceButtons(10, 14, _largeChipWidth),
-  //         Wrap(
-  //           children: _availableChips(),
-  //         ),
-  //         _standardDivider(_dividerColor),
-  //         _selectedDisplay(1),
-  //         _standardDivider(_dividerColor),
-  //         _targetField(),
-  //       ],
-  //     )
-  //   ]);
-  // }
+  Widget _horizontalLayout() {
+    return Row(children: [
+      Flexible(
+        child: _solutionList(),
+      ),
+      Flexible(
+      child: Column(
+        // full contents of right section
+        children: [
+          Wrap(
+            children: _allChips(),
+          ),
+          _standardDivider(_dividerColor),
+          _targetField(),
+        ],
+      ))
+    ]);
+  }
 
   Divider _standardDivider(Color color) => Divider(
         thickness: _dividerThickness,
