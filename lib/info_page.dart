@@ -40,33 +40,31 @@ class InfoPage extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Flexible(
-            child: pad(title, theme.headline5),
-          ),
-          Flexible(
-            child: pad('Copyright ⓒ $copyyear $copyright', theme.bodyText2),
-          ),
+          pad(title, theme.headline5),
+          pad('Copyright ⓒ $copyyear $copyright', theme.bodyText2),
           pad(license, theme.bodyText1),
           Expanded(
-              child: ButtonBar(
-            alignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                  onPressed: () {
-                    _launchURL(url);
-                  },
-                  child: Text(
-                    'App Page',
-                  )),
-              TextButton(
-                  onPressed: () {
-                    _launchURL(ppurl);
-                  },
-                  child: Text(
-                    'Privacy Policy',
-                  )),
-            ],
-          )),
+              child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ButtonBar(
+                    alignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                          onPressed: () {
+                            _launchURL(url);
+                          },
+                          child: Text(
+                            'App Page',
+                          )),
+                      TextButton(
+                          onPressed: () {
+                            _launchURL(ppurl);
+                          },
+                          child: Text(
+                            'Privacy Policy',
+                          )),
+                    ],
+                  ))),
         ],
       ),
     );
