@@ -20,8 +20,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'text_util.dart';
 
-class InfoPage extends StatelessWidget {
+class InfoPage extends StatelessWidget with TextUtil {
   static const url = 'https://apps.joat.me/page/numbers/';
   static const ppurl = 'https://apps.joat.me/page/privacy';
   static const copyyear = '2021';
@@ -68,15 +69,6 @@ class InfoPage extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  pad(String text, TextStyle style) {
-    return Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Text(
-          text,
-          style: style,
-        ));
   }
 
   _launchURL(String url) async {

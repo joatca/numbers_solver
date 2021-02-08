@@ -24,6 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:numbers_solver/game_classes.dart';
 import 'solution_sender.dart';
 import 'info_page.dart';
+import 'text_util.dart';
 
 class MainPage extends StatefulWidget {
   MainPage({Key key, this.title}) : super(key: key);
@@ -34,7 +35,7 @@ class MainPage extends StatefulWidget {
   _MainPageState createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage> with TextUtil {
   static final List<int> _one2ten = Iterable.generate(10, (i) => i + 1).toList();
   // how many of each source number are allowed
   static final List<int> _sourcesAllowed = _one2ten + _one2ten + [25, 50, 75, 100];
@@ -48,6 +49,8 @@ class _MainPageState extends State<MainPage> {
   static const _maxSolutions = 20; // plenty of options
   // the actual target number
   var _targetNumber = 0;
+  // to store the theme to avoid calling it all the time
+  ThemeData theme;
 
   TextEditingController targetTextController = TextEditingController();
 
@@ -73,6 +76,12 @@ class _MainPageState extends State<MainPage> {
     fontSize: 18,
   );
 
+  static const String instructions = '''
+  To solve a Number Game, select 6 "source" numbers then enter a target number between 100 and 999
+  
+  To solve a different puzzle press the clear button, de-select/re-select to choose different source numbers or edit the target number.
+  ''';
+
   List<Solution> _solutions = [];
   Isolate _solver;
   SendPort _sendToSolver;
@@ -80,7 +89,7 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    theme = Theme.of(context);
     _dividerColor = theme.textTheme.button.color.withOpacity(0.2);
     _numberChipUnselectedColor = theme.backgroundColor;
     _numberChipSelectedColor = theme.accentColor;
@@ -111,19 +120,18 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _verticalLayout() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: <Widget>[
-          Wrap(
-            children: _allChips(),
-          ),
-          _standardDivider(_dividerColor),
-          _targetField(),
-          _standardDivider(_solutions.length > 0 ? _dividerColor : Colors.transparent),
-          _solutionList(),
-        ],
-      ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.max,
+      children: <Widget>[
+        Wrap(
+          children: _allChips(),
+        ),
+        _standardDivider(_dividerColor),
+        _targetField(),
+        _standardDivider(_solutions.length > 0 ? _dividerColor : Colors.transparent),
+        Expanded(child: _solutionList()),
+      ],
     );
   }
 
@@ -156,47 +164,44 @@ class _MainPageState extends State<MainPage> {
       );
 
   Widget _targetField() {
-    return Flexible(
-        flex: 1,
-        child: Container(
-            padding: EdgeInsets.all(8.0),
-            width: _targetWidth,
-            child: TextField(
-                maxLength: _maxTargetLength,
-                style: _targetStyle,
-                maxLines: 1,
-                showCursor: true,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                controller: targetTextController,
-                decoration: InputDecoration(
-                  hintText: 'Target',
-                  border: const OutlineInputBorder(),
-                  contentPadding: EdgeInsets.all(1.0),
-                  counterText: '', // don't show the counter'
-                ),
-                onChanged: (String val) async {
-                  setState(() {
-                    if (val.length > 0) {
-                      _targetNumber = int.parse(val);
-                    } else {
-                      _targetNumber = 0;
-                    }
-                    _solutions.clear();
-                    maybeSolve();
-                  });
-                })));
+    return Container(
+        padding: EdgeInsets.all(8.0),
+        width: _targetWidth,
+        child: TextField(
+            maxLength: _maxTargetLength,
+            style: _targetStyle,
+            maxLines: 1,
+            showCursor: true,
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            controller: targetTextController,
+            decoration: InputDecoration(
+              hintText: 'Target',
+              border: const OutlineInputBorder(),
+              contentPadding: EdgeInsets.all(1.0),
+              counterText: '', // don't show the counter'
+            ),
+            onChanged: (String val) async {
+              setState(() {
+                if (val.length > 0) {
+                  _targetNumber = int.parse(val);
+                } else {
+                  _targetNumber = 0;
+                }
+                _solutions.clear();
+                maybeSolve();
+              });
+            }));
   }
 
   Widget _solutionList() {
-    return Expanded(
-      // don't understand yet how this works, but needed to stop squishing everything else
-      child: ListView.separated(
-        itemCount: _solutions.length,
-        separatorBuilder: (BuildContext context, int index) => _standardDivider(_dividerColor),
-        itemBuilder: (BuildContext context, int index) => _resultTile(index),
-      ),
-    );
+    return _solutions.length > 0
+        ? ListView.separated(
+            itemCount: _solutions.length,
+            separatorBuilder: (BuildContext context, int index) => _standardDivider(_dividerColor),
+            itemBuilder: (BuildContext context, int index) => _resultTile(index),
+          )
+        : pad(instructions, theme.textTheme.bodyText1);
   }
 
   // all the list indexes of allowed source numbers
@@ -399,8 +404,8 @@ class _MainPageState extends State<MainPage> {
     setState(() {
       FocusScope.of(context).unfocus(); // dismiss the keyboard if possible
     });
-
   }
+
   // called when the Solve button is pressed; clear the onscreen kb if possible, clear the solutions then start up the solver isolate
   void _initSolver() async {
     _hideKeyboard();
