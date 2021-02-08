@@ -36,6 +36,9 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> with TextUtil {
+
+  // all these variables *really* badly need reorganized
+
   static final List<int> _one2ten = Iterable.generate(10, (i) => i + 1).toList();
   // how many of each source number are allowed
   static final List<int> _sourcesAllowed = _one2ten + _one2ten + [25, 50, 75, 100];
