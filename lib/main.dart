@@ -26,7 +26,7 @@ void main() {
 }
 
 class NumbersApp extends StatelessWidget {
-  static const title = "Numbers Solver";
+  static const title = "Numbers Game Solver";
 
   @override
   Widget build(BuildContext context) {

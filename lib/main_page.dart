@@ -79,7 +79,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
   static const String instructions = '''
   To solve a Number Game, select 6 "source" numbers then enter a target number between 100 and 999
   
-  To solve a different puzzle press the clear button, de-select/re-select to choose different source numbers or edit the target number.
+  To solve a different puzzle press the clear button, de-select/re-select to choose different source numbers, or edit the target number.
   ''';
 
   List<Solution> _solutions = [];
