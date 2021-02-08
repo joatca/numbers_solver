@@ -23,11 +23,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'text_util.dart';
 
 class InfoPage extends StatelessWidget with TextUtil {
-  static const url = 'https://apps.joat.me/page/numbers/';
-  static const ppurl = 'https://apps.joat.me/page/privacy';
-  static const copyyear = '2021';
-  static const copyright = 'Fraser McCrossan';
   static const title = 'Numbers Game Solver';
+  static const url = 'https://apps.joat.me/page/numbers/';
+  static const ppUrl = 'https://apps.joat.me/page/privacy';
+  static const copyYear = '2021';
+  static const copyright = 'Fraser McCrossan';
+  static const iconCopy = 'Icon based on timer by zidney from the Noun Project';
   static const license =
       'This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions';
 
@@ -42,7 +43,8 @@ class InfoPage extends StatelessWidget with TextUtil {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           pad(title, theme.headline5),
-          pad('Copyright ⓒ $copyyear $copyright', theme.bodyText2),
+          pad('Copyright ⓒ $copyYear $copyright', theme.bodyText2),
+          pad(iconCopy, theme.bodyText2),
           pad(license, theme.bodyText1),
           Expanded(
               child: Align(
@@ -59,7 +61,7 @@ class InfoPage extends StatelessWidget with TextUtil {
                           )),
                       TextButton(
                           onPressed: () {
-                            _launchURL(ppurl);
+                            _launchURL(ppUrl);
                           },
                           child: Text(
                             'Privacy Policy',
