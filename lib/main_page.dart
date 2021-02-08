@@ -51,6 +51,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
   var _targetNumber = 0;
   // to store the theme to avoid calling it all the time
   ThemeData theme;
+  // used to jump focus to the target field in some circumstances
+  FocusNode focusNode;
 
   TextEditingController targetTextController = TextEditingController();
 
@@ -86,6 +88,19 @@ class _MainPageState extends State<MainPage> with TextUtil {
   Isolate _solver;
   SendPort _sendToSolver;
   bool _running = false;
+
+  // set up the focusnode so it can be used later
+  @override
+  void initState() {
+    super.initState();
+    focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,6 +187,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
             controller: targetTextController,
+            focusNode: focusNode,
             decoration: InputDecoration(
               hintText: 'Target',
               border: const OutlineInputBorder(),
@@ -307,10 +323,15 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   // action to take when an unselected chip is pressed
   void addSource(int index) {
-    if (_countSelected() < _numSourcesRequired) {
+    final numSelected = _countSelected();
+    if (numSelected < _numSourcesRequired) {
       // only set it if we have less than the limit already
       setState(() {
         _sourcesSelected[index] = true;
+        if (numSelected == _numSourcesRequired - 1 && _targetNumber == 0) {
+          // we just set the last one *and* the target field is unset
+          focusNode.requestFocus();
+        }
         maybeSolve();
       });
     }
