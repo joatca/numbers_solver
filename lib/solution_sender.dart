@@ -20,13 +20,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'dart:isolate';
 import 'game.dart';
+import 'game_classes.dart';
 
 void solutionSender(SendPort toMain) {
   ReceivePort toSolver = ReceivePort();
   toMain.send(toSolver.sendPort);
   toSolver.listen((data) {
     // here we receive a map of the game
-    final numbers = data["numbers"] as List<int>;
+    final numbers = data["numbers"] as List<Value>;
     final target = data["target"] as int;
     final game = Game(numbers, target);
     for (var solution in game.solveDepth(6)) {

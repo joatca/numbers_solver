@@ -20,36 +20,34 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 class Value {
   int num;
-  String tag;
+  int label; // ussed to label somehow in the UI
 
-  Value(this.num, this.tag);
+  Value(this.num, this.label);
 
-  String combineTag(Value other) => this.tag + other.tag;
-
-  Value operator +(Value other) {
-    return Value(this.num + other.num, combineTag(other));
+  Value add(Value other, int newLabel) {
+    return Value(this.num + other.num, newLabel);
   }
 
-  Value operator -(Value other) {
-    return Value(this.num - other.num, combineTag(other));
+  Value sub(Value other, int newLabel) {
+    return Value(this.num - other.num, newLabel);
   }
 
-  Value operator *(Value other) {
-    return Value(this.num * other.num, combineTag(other));
+  Value mul(Value other, int newLabel) {
+    return Value(this.num * other.num, newLabel);
   }
 
-  Value operator ~/(Value other) {
-    return Value(this.num ~/ other.num, combineTag(other));
+  Value div(Value other, int newLabel) {
+    return Value(this.num ~/ other.num, newLabel);
   }
 
   String toString() {
-    return "$num[$tag]";
+    return "$num[$label]";
   }
 }
 
 abstract class Op {
   String symbol();
-  Value calc(Value v1, Value v2);
+  Value calc(Value v1, Value v2, int newLabel);
 
   String toString() {
     return symbol();
@@ -59,10 +57,10 @@ abstract class Op {
 class Add extends Op {
   symbol() => '+';
 
-  Value calc(v1, v2) {
+  Value calc(v1, v2, int newLabel) {
     if (v1.num >= v2.num) {
       // addition is commutative so we can ignore half of the possibilities
-      return (v1 + v2);
+      return v1.add(v2, newLabel);
     }
     return null;
   }
@@ -71,10 +69,10 @@ class Add extends Op {
 class Sub extends Op {
   symbol() => '-';
 
-  Value calc(v1, v2) {
+  Value calc(v1, v2, int newLabel) {
     if (v1.num > v2.num) {
       // intermediate results may not be negative
-      final result = v1 - v2;
+      final result = v1.sub(v2, newLabel);
       /* neither operand is 0 so result can never be v1; if it's v2 then don't bother calling the function since it's a useless operation */
       if (result.num != v2.num) {
         return result;
@@ -87,10 +85,10 @@ class Sub extends Op {
 class Mul extends Op {
   symbol() => '×';
 
-  Value calc(v1, v2) {
+  Value calc(v1, v2, int newLabel) {
 /* ignore any combination where either operand is 1 since the result will be the other operand (so useless operation); also multiplication is commutative so filter out half of the operations */
     if (v1.num > 1 && v2.num > 1 && v1.num >= v2.num) {
-      return (v1 * v2);
+      return v1.mul(v2, newLabel);
     }
     return null;
   }
@@ -99,10 +97,10 @@ class Mul extends Op {
 class Div extends Op {
   symbol() => '÷';
 
-  Value calc(v1, v2) {
+  Value calc(v1, v2, int newLabel) {
     /* only integer division allowed, so only when modulus is 0; since neither operand can be zero this also checks that v1>v2; also ignore when v2 is 1 since that's a useless operation */
     if (v1.num % v2.num == 0 && v2.num > 1) {
-      return (v1 ~/ v2);
+      return v1.div(v2, newLabel);
     }
     return null;
   }

@@ -22,7 +22,9 @@ import 'dart:isolate';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:numbers_solver/game_classes.dart';
+import 'package:more/iterable.dart';
 import 'solution_sender.dart';
+import 'game_classes.dart';
 import 'info_page.dart';
 import 'text_util.dart';
 
@@ -36,7 +38,6 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> with TextUtil {
-
   // all these variables *really* badly need reorganized
 
   static final List<int> _one2ten = Iterable.generate(10, (i) => i + 1).toList();
@@ -46,6 +47,11 @@ class _MainPageState extends State<MainPage> with TextUtil {
   List<bool> _sourcesSelected = List<bool>.filled(_sourcesAllowed.length, false);
   // number of sources required before allowing a solve
   static const _numSourcesRequired = 6;
+  // we can never have more computed numbers than this, so this is the most colours we need
+  static const _colorTableSize = _numSourcesRequired;
+  static const _hueStep = 360 / _colorTableSize;
+  List<Color> colors = Iterable.generate(_colorTableSize, (i) => HSVColor.fromAHSV(1.0, (_hueStep * i) % 360, 0.5, 1.0).toColor())
+      .toList(growable: false);
   // maximum length of the target number, used for the textfield
   static const _maxTargetLength = 3;
   // maximum number of solutions to store
@@ -80,6 +86,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
   static final _sourceButtonStyle = TextStyle(
     fontSize: 18,
   );
+  static final _resultUnder10Style = _targetStyle.copyWith(color: Colors.amber);
+  static final _resultOver10Style = _resultUnder10Style.copyWith(color: Colors.red);
 
   static const String instructions = '''
   To solve a Number Game, select 6 "source" numbers then enter a target number between 100 and 999
@@ -159,7 +167,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
         child: _solutionList(),
       ),
       Flexible(
-      child: Column(
+          child: Column(
         // full contents of right section
         children: [
           Wrap(
@@ -227,13 +235,13 @@ class _MainPageState extends State<MainPage> with TextUtil {
   Iterable<int> _selectedIndexes() => _allIndexes().where((i) => _sourcesSelected[i]);
 
   // all the selected numbers
-  Iterable<int> _selectedNumbers() => _selectedIndexes().map((i) => _sourcesAllowed[i]);
+  Iterable<Value> _selectedValues() => _selectedIndexes().indexed().map((each) => Value(_sourcesAllowed[each.value], each.index));
 
   // how many are selected? not exactly efficient but meh
   int _countSelected() => _selectedIndexes().length;
 
   // converts a source number index to a selectable chip
-  Widget _numberChip(int index, void Function(bool) action) {
+  Widget _numberChip(int index, int colorNumber, void Function(bool) action) {
     return Container(
         padding: EdgeInsets.only(left: 1.0, right: 1.0),
         child: FilterChip(
@@ -241,7 +249,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
             showCheckmark: false,
             onSelected: action,
             backgroundColor: _numberChipUnselectedColor,
-            selectedColor: _numberChipSelectedColor,
+            selectedColor: _numberChipSelectedColor, //colors[colorNumber],
             label: Text(
               _sourcesAllowed[index].toString(),
               style: _sourceButtonStyle,
@@ -249,12 +257,13 @@ class _MainPageState extends State<MainPage> with TextUtil {
   }
 
   List<Widget> _allChips() {
-    return _allIndexes().map<Widget>((index) {
-      return _numberChip(index, (bool selected) {
+    int _selectedColorNumber = 0;
+    return _allIndexes().map<Widget>((i) {
+      return _numberChip(i, _sourcesSelected[i] ? _selectedColorNumber++ : _selectedColorNumber, (bool selected) {
         if (selected) {
-          addSource(index);
+          addSource(i);
         } else {
-          removeSource(index);
+          removeSource(i);
         }
       });
     }).toList();
@@ -264,19 +273,16 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   // returns a value (number plus tag)
   Widget _valueTile(Value v) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          v.num.toString(),
-          style: _numberStyle,
-        ),
-        Text(
-          v.tag,
-          style: _tagStyle,
-        ),
-      ],
+    return Container(
+      decoration: v.label >= _numSourcesRequired
+          ? BoxDecoration(
+              border: Border.all(color: colors[v.label - _numSourcesRequired]),
+            )
+          : null,
+      child: Text(
+        v.num.toString(),
+        style: _numberStyle,
+      ),
     );
   }
 
@@ -303,15 +309,41 @@ class _MainPageState extends State<MainPage> with TextUtil {
   }
 
   Widget _solutionTile(Solution solution) {
-    final solutionWidgets = solution.steps.map<Widget>((step) => _stepTile(step)).toList();
-    solutionWidgets.add(Text(
-      "(${solution.away} away)",
-      style: _numberStyle,
-    ));
-    return Wrap(
-      children: solutionWidgets,
+    return Row(
+      children: [
+        // steps
+        Expanded(
+          child: Wrap(
+            children: solution.steps.map<Widget>((step) => _stepTile(step)).toList(),
+          ),
+        ),
+        // status
+        Padding(
+            padding: EdgeInsets.fromLTRB(4, 0, 8, 0),
+            child: Center(
+              child: solution.away == 0
+                  ? Icon(
+                      Icons.done,
+                      color: Colors.green,
+                    )
+                  : Text(
+                      diffFormat(solution.result - _targetNumber),
+                      style: solution.away < 10 ? _resultUnder10Style : _resultOver10Style,
+                    ),
+            )),
+      ],
     );
+    // final solutionWidgets = solution.steps.map<Widget>((step) => _stepTile(step)).toList();
+    // solutionWidgets.add(Text(
+    //   "(${solution.away} away)",
+    //   style: _numberStyle,
+    // ));
+    // return Wrap(
+    //   children: solutionWidgets,
+    // );
   }
+
+  String diffFormat(int diff) => diff < 0 ? diff.toString() : "+$diff";
 
   double textWidth(int number, TextStyle style) {
     final Size size = (TextPainter(
@@ -338,7 +370,6 @@ class _MainPageState extends State<MainPage> with TextUtil {
         maybeSolve();
       });
     }
-    ;
   }
 
 // action to take when a selected chip is pressed
@@ -391,13 +422,13 @@ class _MainPageState extends State<MainPage> with TextUtil {
     if (solution is Solution) {
       // this makes it typesafe inside the if block
       if (_solutions.length > 0) {
-        if (solution.away < _solutions.first.away) {
-          _solutions.clear(); // this solution is better than the ones we have, dump everything
-        }
+        // if (solution.away < _solutions.first.away) {
+        //   _solutions.clear(); // this solution is better than the ones we have, dump everything
+        // }
       }
       _solutions.add(solution);
       // we sort only by the shortest solution since we've already eliminated any that are further away
-      _solutions.sort((a, b) => a.steps.length.compareTo(b.steps.length));
+      _solutions.sort((a, b) => (a.away == b.away) ? a.steps.length.compareTo(b.steps.length) : a.away.compareTo(b.away));
       while (_solutions.length > _maxSolutions) {
         _solutions.removeLast();
       }
@@ -433,7 +464,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
     _solutions.clear();
     _sendToSolver = await _startSolverListener();
     // we now have a running isolate and a port to send it the game
-    _sendToSolver.send({'numbers': _selectedNumbers().toList(), 'target': _targetNumber});
+    _sendToSolver.send({'numbers': _selectedValues().toList(), 'target': _targetNumber});
     setState(() {
       _running = true;
     });

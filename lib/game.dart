@@ -24,31 +24,33 @@ class Game {
   static const maxAway = 999; // furthest away we can be before reporting a result
   static final allowedOps = [Add(), Sub(), Mul(), Div()];
   int bestAway = maxAway + 1; // one more than the furthest away so we can tell if we got any solution
-  List<int> numbers; // the raw numbers that came from the caller
+  //List<int> numbers; // the raw numbers that came from the caller
   List<Value> values; // source (puzzle) numbers
   int target; // target value
   List<Value> stack; // expression stack
   List<SolutionStep> steps; // record of the current steps, used when reporting solutions
   List<bool> avail; // which source numbers are current available
+  int curLabel;
 
-  Game(this.numbers, this.target) {
-    var letter = 'a'.codeUnitAt(0);
-    values = numbers.map((n) => Value(n, String.fromCharCode(letter++))).toList();
+  Game(this.values, this.target) {
+    //values = numbers.map((n) => Value(n, curLabel++)).toList();
     stack = [];
     steps = [];
     avail = List.filled(values.length, true);
+    curLabel = values.last.label + 1;
   }
 
   // try something with the top two numbers
   Iterable<Solution> _tryOp(int depth, Op op) sync* {
     final v2 = stack.removeLast();
     final v1 = stack.removeLast();
-    final result = op.calc(v1, v2);
+    final result = op.calc(v1, v2, curLabel);
     if (result != null) {
       /* we push the step onto the stack *before* checking whether we got the
            target, that way we can output the step immediately
          */
       steps.add(SolutionStep(op, v1, v2, result));
+      ++curLabel;
       final away = (result.num - target).abs();
       if (away <= bestAway) {
           yield Solution(target, steps);
@@ -61,6 +63,7 @@ class Game {
       stack.add(result);
       yield* solveDepth(depth);
       stack.removeLast();
+      --curLabel;
       steps.removeLast();
     }
     stack.add(v1);
