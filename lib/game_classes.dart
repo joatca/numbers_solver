@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 class Value {
   int num;
-  int label; // ussed to label somehow in the UI
+  int label; // help eliminate some duplicate recursions, plus labels stuff in the UI
 
   Value(this.num, this.label);
 
@@ -58,7 +58,7 @@ class Add extends Op {
   symbol() => '+';
 
   Value calc(v1, v2, int newLabel) {
-    if (v1.num >= v2.num) {
+    if (v1.num > v2.num || (v1.num == v2.num && v1.label < v2.label)) {
       // addition is commutative so we can ignore half of the possibilities
       return v1.add(v2, newLabel);
     }
@@ -87,7 +87,7 @@ class Mul extends Op {
 
   Value calc(v1, v2, int newLabel) {
 /* ignore any combination where either operand is 1 since the result will be the other operand (so useless operation); also multiplication is commutative so filter out half of the operations */
-    if (v1.num > 1 && v2.num > 1 && v1.num >= v2.num) {
+    if (v1.num > 1 && v2.num > 1 && (v1.num > v2.num || (v1.num == v2.num && v1.label < v2.label))) {
       return v1.mul(v2, newLabel);
     }
     return null;
