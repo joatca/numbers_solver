@@ -18,6 +18,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import 'package:more/iterable.dart';
+
 class Value {
   int num;
   int label; // help eliminate some duplicate recursions, plus labels stuff in the UI
@@ -43,6 +45,9 @@ class Value {
   String toString() {
     return "$num[$label]";
   }
+
+  bool operator ==(Object other) =>
+      other is Value && num == other.num && label == other.label;
 }
 
 abstract class Op {
@@ -52,13 +57,15 @@ abstract class Op {
   String toString() {
     return symbol();
   }
+
+  bool operator ==(Object other) => other is Op && symbol() == other.symbol();
 }
 
 class Add extends Op {
   symbol() => '+';
 
   Value calc(v1, v2, int newLabel) {
-    if (v1.num > v2.num || (v1.num == v2.num && v1.label < v2.label)) {
+    if (v1.num > v2.num || (v1.num == v2.num /*&& v1.label < v2.label*/)) {
       // addition is commutative so we can ignore half of the possibilities
       return v1.add(v2, newLabel);
     }
@@ -87,7 +94,9 @@ class Mul extends Op {
 
   Value calc(v1, v2, int newLabel) {
 /* ignore any combination where either operand is 1 since the result will be the other operand (so useless operation); also multiplication is commutative so filter out half of the operations */
-    if (v1.num > 1 && v2.num > 1 && (v1.num > v2.num || (v1.num == v2.num && v1.label < v2.label))) {
+    if (v1.num > 1 &&
+        v2.num > 1 &&
+        (v1.num > v2.num || (v1.num == v2.num /* && v1.label < v2.label */))) {
       return v1.mul(v2, newLabel);
     }
     return null;
@@ -116,6 +125,12 @@ class SolutionStep {
     return "$v1$op$v2=$result";
   }
 
+  bool operator ==(Object other) =>
+      other is SolutionStep &&
+      op == other.op &&
+      v1 == other.v1 &&
+      v2 == other.v2 &&
+      result == other.result;
 }
 
 class Solution {
@@ -129,6 +144,15 @@ class Solution {
   }
 
   String toString() {
-    return "${steps.map((step)=> step.toString()).join('; ')} ($away away)";
+    return "${steps.map((step) => step.toString()).join('; ')} ($away away)";
+  }
+
+  bool operator ==(Object other) {
+    if (other is Solution &&
+        result == other.result &&
+        steps.length == other.steps.length) {
+        return steps.indexed().every((each) => each.value == other.steps[each.index]);
+    }
+    return false;
   }
 }

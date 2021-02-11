@@ -57,7 +57,7 @@ class InfoPage extends StatelessWidget with TextUtil {
                             _launchURL(url);
                           },
                           child: Text(
-                            'App Page',
+                            'App page',
                           )),
                       TextButton(
                           onPressed: () {

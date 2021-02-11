@@ -426,6 +426,9 @@ class _MainPageState extends State<MainPage> with TextUtil {
         //   _solutions.clear(); // this solution is better than the ones we have, dump everything
         // }
       }
+      // if (_solutions.any((s) => s == solution)) {
+      //   print("duplicate solution added: $solution");
+      // }
       _solutions.add(solution);
       // we sort only by the shortest solution since we've already eliminated any that are further away
       _solutions.sort((a, b) => (a.away == b.away) ? a.steps.length.compareTo(b.steps.length) : a.away.compareTo(b.away));

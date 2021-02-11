@@ -32,6 +32,8 @@ class Game {
   List<bool> avail; // which source numbers are current available
   int curLabel;
 
+  // variables only used in the new algorithm
+
   Game(this.values, this.target) {
     //values = numbers.map((n) => Value(n, curLabel++)).toList();
     stack = [];
@@ -42,19 +44,19 @@ class Game {
 
   // try something with the top two numbers
   Iterable<Solution> _tryOp(int depth, Op op) sync* {
+    // print("tryOp($depth, $op)");
     final v2 = stack.removeLast();
     final v1 = stack.removeLast();
     final result = op.calc(v1, v2, curLabel);
     if (result != null) {
       /* we push the step onto the stack *before* checking whether we got the
-           target, that way we can output the step immediately
-         */
+         target, that way we can output the step immediately */
       steps.add(SolutionStep(op, v1, v2, result));
       ++curLabel;
       final away = (result.num - target).abs();
       if (away <= bestAway) {
-          yield Solution(target, steps);
-          // sleep(Duration(milliseconds: 500));
+        yield Solution(target, steps);
+        // sleep(Duration(milliseconds: 500));
         // we only want to report equivalent or better results, never worse results than the previous best
         if (away < bestAway) {
           bestAway = away;
@@ -73,13 +75,16 @@ class Game {
   // depth-wise solve
   Iterable<Solution> solveDepth(int depth) sync* {
     // if depth > 0 then we can continue to try pushing numbers onto the expression stack
-    // bleugh we have to use a loop, there's no equivalent of each_with_index
+    // bleugh we have to use a loop, can't use indexed() in sync*
+    // print("solveDepth($depth)");
     if (depth > 0) {
       for (var i = 0; i < values.length; i++) {
         if (avail[i]) {
           avail[i] = false;
           stack.add(values[i]);
+          // print("stack.add(${values[i]})");
           yield* solveDepth(depth - 1);
+          // print("stack.removeLast(${values[i]})");
           stack.removeLast();
           avail[i] = true;
         }
@@ -93,4 +98,53 @@ class Game {
     }
   }
 
+  // alternate algorithm - the above generates a lot of duplicates; can we do better?
+  Iterable<Solution> solve(int remaining) sync* {
+    //print("remaining $remaining");
+    if (steps.length > 0) {
+      // first check the end of the steps stack - if it's worth reporting then report it
+      final result = steps.last.result;
+      final away = (result.num - target).abs();
+      if (away <= bestAway) {
+        yield Solution(target, steps);
+        if (away < bestAway) {
+          bestAway = away;
+        }
+      }
+    }
+    if (remaining < 2) {
+      return; // if there are less than two numbers remaining then we cannot do any more operations
+    }
+    // now try every possible combination of numbers and recurse, resetting the state afterwards
+    for (var i = 0; i < values.length; ++i) {
+      if (avail[i]) {
+        for (var j = 0; j < values.length; ++j) {
+          if (i != j && avail[j]) {
+            //print("checking i $i j $j");
+            // at this point we have found one valid combination of numbers; mark the second as unavailable, record the first, increment the label
+            avail[j] = false;
+            final v1 = values[i];
+            final v2 = values[j];
+            ++curLabel;
+            // now try every possible operator
+            for (var op in allowedOps) {
+              final result = op.calc(v1, v2, curLabel); // note, fix curlabel stuff later
+              //print("op $op v1 $v1 v2 $v2 result $result");
+              if (result != null) {
+                // the operation was a success ;-)
+                steps.add(SolutionStep(op, v1, v2, result)); // push the step so it can be reported
+                values[i] = result; // replace the first value with the result so deeper recursion can use it
+                yield* solve(remaining - 1); // recurse immediately; if the result is good we report it in the very first step
+                steps.removeLast(); // pop the step off the step stack because it was either already reported or no good
+              }
+            }
+            // mark the second as available again, restore the first and the label
+            --curLabel;
+            values[i] = v1;
+            avail[j] = true;
+          } // else do nothing
+        }
+      }
+    }
+  }
 }
