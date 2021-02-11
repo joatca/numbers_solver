@@ -24,78 +24,16 @@ class Game {
   static const maxAway = 999; // furthest away we can be before reporting a result
   static final allowedOps = [Add(), Sub(), Mul(), Div()];
   int bestAway = maxAway + 1; // one more than the furthest away so we can tell if we got any solution
-  //List<int> numbers; // the raw numbers that came from the caller
-  List<Value> values; // source (puzzle) numbers
+  List<Value> values; // current (puzzle) numbers
   int target; // target value
-  List<Value> stack; // expression stack
   List<SolutionStep> steps; // record of the current steps, used when reporting solutions
   List<bool> avail; // which source numbers are current available
   int curLabel;
 
-  // variables only used in the new algorithm
-
   Game(this.values, this.target) {
-    //values = numbers.map((n) => Value(n, curLabel++)).toList();
-    stack = [];
     steps = [];
-    avail = List.filled(values.length, true);
+    avail = List.filled(values.length, true, growable: false);
     curLabel = values.last.label + 1;
-  }
-
-  // try something with the top two numbers
-  Iterable<Solution> _tryOp(int depth, Op op) sync* {
-    // print("tryOp($depth, $op)");
-    final v2 = stack.removeLast();
-    final v1 = stack.removeLast();
-    final result = op.calc(v1, v2, curLabel);
-    if (result != null) {
-      /* we push the step onto the stack *before* checking whether we got the
-         target, that way we can output the step immediately */
-      steps.add(SolutionStep(op, v1, v2, result));
-      ++curLabel;
-      final away = (result.num - target).abs();
-      if (away <= bestAway) {
-        yield Solution(target, steps);
-        // sleep(Duration(milliseconds: 500));
-        // we only want to report equivalent or better results, never worse results than the previous best
-        if (away < bestAway) {
-          bestAway = away;
-        }
-      }
-      stack.add(result);
-      yield* solveDepth(depth);
-      stack.removeLast();
-      --curLabel;
-      steps.removeLast();
-    }
-    stack.add(v1);
-    stack.add(v2);
-  }
-
-  // depth-wise solve
-  Iterable<Solution> solveDepth(int depth) sync* {
-    // if depth > 0 then we can continue to try pushing numbers onto the expression stack
-    // bleugh we have to use a loop, can't use indexed() in sync*
-    // print("solveDepth($depth)");
-    if (depth > 0) {
-      for (var i = 0; i < values.length; i++) {
-        if (avail[i]) {
-          avail[i] = false;
-          stack.add(values[i]);
-          // print("stack.add(${values[i]})");
-          yield* solveDepth(depth - 1);
-          // print("stack.removeLast(${values[i]})");
-          stack.removeLast();
-          avail[i] = true;
-        }
-      }
-    }
-    // if we have at least 2 numbers on the stack then we can try applying operations to them
-    if (stack.length >= 2) {
-      for (var op in allowedOps) {
-        yield* _tryOp(depth, op);
-      }
-    }
   }
 
   // alternate algorithm - the above generates a lot of duplicates; can we do better?

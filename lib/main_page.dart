@@ -55,7 +55,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
   // maximum length of the target number, used for the textfield
   static const _maxTargetLength = 3;
   // maximum number of solutions to store
-  static const _maxSolutions = 20; // plenty of options
+  static const _maxSolutions = 50; // plenty of options
   // the actual target number
   var _targetNumber = 0;
   // to store the theme to avoid calling it all the time
@@ -333,14 +333,6 @@ class _MainPageState extends State<MainPage> with TextUtil {
             )),
       ],
     );
-    // final solutionWidgets = solution.steps.map<Widget>((step) => _stepTile(step)).toList();
-    // solutionWidgets.add(Text(
-    //   "(${solution.away} away)",
-    //   style: _numberStyle,
-    // ));
-    // return Wrap(
-    //   children: solutionWidgets,
-    // );
   }
 
   String diffFormat(int diff) => diff < 0 ? diff.toString() : "+$diff";
@@ -421,16 +413,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
     assert(solution is Solution);
     if (solution is Solution) {
       // this makes it typesafe inside the if block
-      if (_solutions.length > 0) {
-        // if (solution.away < _solutions.first.away) {
-        //   _solutions.clear(); // this solution is better than the ones we have, dump everything
-        // }
-      }
-      // if (_solutions.any((s) => s == solution)) {
-      //   print("duplicate solution added: $solution");
-      // }
       _solutions.add(solution);
-      // we sort only by the shortest solution since we've already eliminated any that are further away
+      // we sort by the closest then by shortest
       _solutions.sort((a, b) => (a.away == b.away) ? a.steps.length.compareTo(b.steps.length) : a.away.compareTo(b.away));
       while (_solutions.length > _maxSolutions) {
         _solutions.removeLast();
