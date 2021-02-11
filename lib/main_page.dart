@@ -403,7 +403,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
       // this makes it typesafe inside the if block
       _solutions.add(solution);
       // we sort by the closest then by shortest
-      _solutions.sort((a, b) => (a.away == b.away) ? a.steps.length.compareTo(b.steps.length) : a.away.compareTo(b.away));
+      _solutions.sort();
       while (_solutions.length > _maxSolutions) {
         _solutions.removeLast();
       }

@@ -18,8 +18,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import 'package:more/iterable.dart';
-
 class Value {
   int num;
   int label; // help eliminate some duplicate recursions, plus labels stuff in the UI
@@ -133,14 +131,33 @@ class SolutionStep {
       result == other.result;
 }
 
-class Solution {
+class Solution with Comparable {
   List<SolutionStep> steps;
-  int result, away;
+  int result, away, numTotals;
 
   Solution(int target, List<SolutionStep> solSteps) {
     steps = List.of(solSteps); // clone the list
     result = steps.last.result.num;
     away = (result - target).abs();
+    // this is a sort field of last resort, so we can prefer smaller numbers; also stabilizes the sort, we hope?
+    numTotals = solSteps.fold(0, (acc, step) => acc + step.v1.num + step.v1.num);
+  }
+
+  int compareTo(Object other) {
+    assert(other is Solution);
+    if (other is Solution) {
+      if (this.away == other.away) {
+        if (this.steps.length == other.steps.length) {
+          return this.numTotals.compareTo(other.numTotals);
+        } else {
+          return this.steps.length.compareTo(other.steps.length);
+        }
+      } else {
+        return this.away.compareTo(other.away);
+      }
+    } else {
+      return 0; // shrug
+    }
   }
 
   String toString() {
@@ -148,11 +165,6 @@ class Solution {
   }
 
   bool operator ==(Object other) {
-    if (other is Solution &&
-        result == other.result &&
-        steps.length == other.steps.length) {
-        return steps.indexed().every((each) => each.value == other.steps[each.index]);
-    }
-    return false;
+    return this.compareTo(other) == 0;
   }
 }
