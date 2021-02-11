@@ -21,33 +21,33 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import 'game_classes.dart';
 
 class Game {
-  static const maxAway = 999; // furthest away we can be before reporting a result
-  static final allowedOps = [Add(), Sub(), Mul(), Div()];
-  int bestAway = maxAway + 1; // one more than the furthest away so we can tell if we got any solution
-  List<Value> values; // current (puzzle) numbers
-  int target; // target value
-  List<SolutionStep> steps; // record of the current steps, used when reporting solutions
-  List<bool> avail; // which source numbers are current available
-  int curLabel;
+  static const _maxAway = 999; // furthest away we can be before reporting a result
+  static final _allowedOps = [Add(), Sub(), Mul(), Div()];
+  int bestAway = _maxAway + 1; // one more than the furthest away so we can tell if we got any solution
+  List<Value> _values; // current (puzzle) numbers
+  int _target; // target value
+  List<SolutionStep> _steps; // record of the current steps, used when reporting solutions
+  List<bool> _avail; // which source numbers are current available
+  int _curLabel;
 
-  Game(this.values, this.target) {
-    steps = [];
-    avail = List.filled(values.length, true, growable: false);
-    curLabel = values.last.label + 1;
+  Game(this._values, this._target) {
+    _steps = [];
+    _avail = List.filled(_values.length, true, growable: false);
+    _curLabel = _values.last.label + 1;
   }
 
   Iterable<Solution> _solve(int remaining) sync* {
     //print("remaining $remaining");
-    if (steps.length > 0) {
+    if (_steps.length > 0) {
       // first check the end of the steps stack - if it's worth reporting then report it
-      final result = steps.last.result;
-      final away = (result.num - target).abs();
+      final result = _steps.last.result;
+      final away = (result.num - _target).abs();
       if (away <= bestAway) {
         /* note a subtlety here; we are yielding an instance that includes the current steps list, which is not duplicated and
         thus will be repeatedly modified after being yielded; however Game actually runs in an Isolate and when this Solution is
         passed to the main thread it gets implicitly copied
          */
-        yield Solution(target, steps);
+        yield Solution(_target, _steps);
         if (away < bestAway) {
           bestAway = away;
         }
@@ -57,32 +57,32 @@ class Game {
       return; // if there are less than two numbers remaining then we cannot do any more operations
     }
     // now try every possible combination of numbers and recurse, resetting the state afterwards
-    for (var i = 0; i < values.length; ++i) {
-      if (avail[i]) {
-        for (var j = 0; j < values.length; ++j) {
-          if (i != j && avail[j]) {
+    for (var i = 0; i < _values.length; ++i) {
+      if (_avail[i]) {
+        for (var j = 0; j < _values.length; ++j) {
+          if (i != j && _avail[j]) {
             //print("checking i $i j $j");
             // at this point we have found one valid combination of numbers; mark the second as unavailable, record the first, increment the label
-            avail[j] = false;
-            final v1 = values[i];
-            final v2 = values[j];
-            ++curLabel;
+            _avail[j] = false;
+            final v1 = _values[i];
+            final v2 = _values[j];
+            ++_curLabel;
             // now try every possible operator
-            for (var op in allowedOps) {
-              final result = op.calc(v1, v2, curLabel); // note, fix curlabel stuff later
+            for (var op in _allowedOps) {
+              final result = op.calc(v1, v2, _curLabel); // note, fix curlabel stuff later
               //print("op $op v1 $v1 v2 $v2 result $result");
               if (result != null) {
                 // the operation was a success ;-)
-                steps.add(SolutionStep(op, v1, v2, result)); // push the step so it can be reported
-                values[i] = result; // replace the first value with the result so deeper recursion can use it
+                _steps.add(SolutionStep(op, v1, v2, result)); // push the step so it can be reported
+                _values[i] = result; // replace the first value with the result so deeper recursion can use it
                 yield* _solve(remaining - 1); // recurse immediately; if the result is good we report it in the very first step
-                steps.removeLast(); // pop the step off the step stack because it was either already reported or no good
+                _steps.removeLast(); // pop the step off the step stack because it was either already reported or no good
               }
             }
             // mark the second as available again, restore the first and the label
-            --curLabel;
-            values[i] = v1;
-            avail[j] = true;
+            --_curLabel;
+            _values[i] = v1;
+            _avail[j] = true;
           } // else do nothing
         }
       }
@@ -90,6 +90,6 @@ class Game {
   }
 
   Iterable<Solution> solve() sync* {
-    yield* _solve(values.length);
+    yield* _solve(_values.length);
   }
 }
