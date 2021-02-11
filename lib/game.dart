@@ -43,6 +43,10 @@ class Game {
       final result = steps.last.result;
       final away = (result.num - target).abs();
       if (away <= bestAway) {
+        /* note a subtlety here; we are yielding an instance that includes the current steps list, which is not duplicated and
+        thus will be repeatedly modified after being yielded; however Game actually runs in an Isolate and when this Solution is
+        passed to the main thread it gets implicitly copied
+         */
         yield Solution(target, steps);
         if (away < bestAway) {
           bestAway = away;
