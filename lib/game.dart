@@ -36,7 +36,7 @@ class Game {
     curLabel = values.last.label + 1;
   }
 
-  Iterable<Solution> solve(int remaining) sync* {
+  Iterable<Solution> _solve(int remaining) sync* {
     //print("remaining $remaining");
     if (steps.length > 0) {
       // first check the end of the steps stack - if it's worth reporting then report it
@@ -75,7 +75,7 @@ class Game {
                 // the operation was a success ;-)
                 steps.add(SolutionStep(op, v1, v2, result)); // push the step so it can be reported
                 values[i] = result; // replace the first value with the result so deeper recursion can use it
-                yield* solve(remaining - 1); // recurse immediately; if the result is good we report it in the very first step
+                yield* _solve(remaining - 1); // recurse immediately; if the result is good we report it in the very first step
                 steps.removeLast(); // pop the step off the step stack because it was either already reported or no good
               }
             }
@@ -87,5 +87,9 @@ class Game {
         }
       }
     }
+  }
+
+  Iterable<Solution> solve() sync* {
+    yield* _solve(values.length);
   }
 }
