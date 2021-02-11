@@ -36,7 +36,6 @@ class Game {
     curLabel = values.last.label + 1;
   }
 
-  // alternate algorithm - the above generates a lot of duplicates; can we do better?
   Iterable<Solution> solve(int remaining) sync* {
     //print("remaining $remaining");
     if (steps.length > 0) {
