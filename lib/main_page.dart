@@ -47,11 +47,6 @@ class _MainPageState extends State<MainPage> with TextUtil {
   List<bool> _sourcesSelected = List<bool>.filled(_sourcesAllowed.length, false);
   // number of sources required before allowing a solve
   static const _numSourcesRequired = 6;
-  // we can never have more computed numbers than this, so this is the most colours we need
-  static const _colorTableSize = _numSourcesRequired;
-  static const _hueStep = 360 / _colorTableSize;
-  List<Color> colors = Iterable.generate(_colorTableSize, (i) => HSVColor.fromAHSV(1.0, (_hueStep * i) % 360, 0.5, 1.0).toColor())
-      .toList(growable: false);
   // maximum length of the target number, used for the textfield
   static const _maxTargetLength = 3;
   // maximum number of solutions to store
@@ -86,7 +81,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
   static final _sourceButtonStyle = TextStyle(
     fontSize: 18,
   );
-  static final _resultUnder10Style = _targetStyle.copyWith(color: Colors.amber);
+  static final _resultUnder10Style = _targetStyle;
   static final _resultOver10Style = _resultUnder10Style.copyWith(color: Colors.red);
 
   static const String instructions = '''
@@ -273,16 +268,9 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   // returns a value (number plus tag)
   Widget _valueTile(Value v) {
-    return Container(
-      decoration: v.label >= _numSourcesRequired
-          ? BoxDecoration(
-              border: Border.all(color: colors[v.label - _numSourcesRequired]),
-            )
-          : null,
-      child: Text(
+    return Text(
         v.num.toString(),
         style: _numberStyle,
-      ),
     );
   }
 
