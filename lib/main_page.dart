@@ -38,44 +38,21 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> with TextUtil {
-  // all these variables *really* badly need reorganized
 
-  static final List<int> _one2ten = Iterable.generate(10, (i) => i + 1).toList();
-  // how many of each source number are allowed
-  static final List<int> _sourcesAllowed = _one2ten + _one2ten + [25, 50, 75, 100];
-  // which sources are currently selected?
-  List<bool> _sourcesSelected = List<bool>.filled(_sourcesAllowed.length, false);
-  // number of sources required before allowing a solve
-  static const _numSourcesRequired = 6;
-  // characters to use as labels
-  static final int _firstLabelCode = 'A'.codeUnitAt(0);
-  // labels start at zero; the source numbers first and then intermediates, so we want _numSourcesRequired of the first then the
-  // same number of the second
-  static final List<String> _labelLookup = Iterable.generate(_numSourcesRequired * 2, (i) => i + _firstLabelCode)
-      .map((code) => String.fromCharCode(code))
-      .toList();
+  // first some constants (or effective constants)
 
   // maximum length of the target number, used for the textfield
   static const _maxTargetLength = 3;
   // maximum number of solutions to store
   static const _maxSolutions = 50; // plenty of options
-  // the actual target number
-  var _targetNumber = 0;
-  // to store the theme to avoid calling it all the time
-  ThemeData theme;
-  // used to jump focus to the target field in some circumstances
-  FocusNode focusNode;
+  // number of sources required before allowing a solve
+  static const _numSourcesRequired = 6;
 
-  TextEditingController targetTextController = TextEditingController();
-
-  // UI options
+  // some UI construction constants
   static const _targetWidth = 120.0;
-  Color _dividerColor;
   static const _dividerThickness = 2.0;
   static const _stepSeparation = 6.0;
   static const _verticalStepSeparation = 3.0;
-  Color _numberChipUnselectedColor;
-  Color _numberChipSelectedColor;
   static final _numberStyle = TextStyle(
     fontSize: 16,
   );
@@ -92,17 +69,56 @@ class _MainPageState extends State<MainPage> with TextUtil {
   static final _resultUnder10Style = _targetStyle;
   static final _resultOver10Style = _resultUnder10Style.copyWith(color: Colors.red);
 
+  // stuff to generate the number subscript labels
+
+  // characters to use as labels
+  static final int _firstLabelCode = 'A'.codeUnitAt(0);
+  // labels start at zero; the source numbers first and then intermediates, so we want _numSourcesRequired of the first then the
+  // same number of the second
+  static final List<String> _labelLookup = Iterable.generate(_numSourcesRequired * 2, (i) => i + _firstLabelCode)
+      .map((code) => String.fromCharCode(code))
+      .toList();
+
+  // UI messages
   static const String _instructions = '''
-  To solve a Number Game, select 6 "source" numbers then enter a target number between 100 and 999
+  To solve a Numbers game, select 6 "source" numbers then enter a target number between 100 and 999
   
-  To solve a different puzzle press the clear button, de-select/re-select to choose different source numbers, or edit the target number.
+  To solve a different game press the clear button, de-select/re-select to choose different source numbers, or edit the target number.
   ''';
   static const String _inProgress = 'Searching...';
 
+  // list to help construct _sourcesAllowed
+  static final List<int> _one2ten = Iterable.generate(10, (i) => i + 1).toList();
+  // how many of each source number are allowed
+  static final List<int> _sourcesAllowed = _one2ten + _one2ten + [25, 50, 75, 100];
+
+  // now some genuine state
+
+  // the actual target number
+  var _targetNumber = 0;
+  // which sources are currently selected?
+  List<bool> _sourcesSelected = List<bool>.filled(_sourcesAllowed.length, false);
+  // the list of solutions found (so far)
   List<Solution> _solutions = [];
-  Isolate _solver;
-  SendPort _sendToSolver;
+  // easy way to track whether we are running or now, used to tweak the UI
   bool _running = false;
+
+  // the Isolate running the solver - saved so we can kill it
+  Isolate _solver;
+  // port used to send the game to the solver
+  SendPort _sendToSolver;
+
+  // to store the theme to avoid calling it all the time
+  ThemeData theme;
+  // used to jump focus to the target field when all source numbers have been select but the target field is empty
+  FocusNode focusNode;
+  // used to attempt to dismiss the keyboard once we start solving
+  TextEditingController targetTextController = TextEditingController();
+
+  // some not-quite-state that gets initialized in the build method
+  Color _dividerColor;
+  Color _numberChipUnselectedColor;
+  Color _numberChipSelectedColor;
 
   // set up the focusnode so it can be used later
   @override
@@ -324,7 +340,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
         ),
         // status
         Padding(
-            padding: EdgeInsets.fromLTRB(4, 0, 8, 0),
+            padding: EdgeInsets.fromLTRB(4, 0, 4, 0),
             child: Center(
               child: solution.away == 0
                   ? Icon(
