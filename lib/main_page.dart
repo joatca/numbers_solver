@@ -97,6 +97,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
   
   To solve a different puzzle press the clear button, de-select/re-select to choose different source numbers, or edit the target number.
   ''';
+  static const String _inProgress = 'Searching...';
 
   List<Solution> _solutions = [];
   Isolate _solver;
@@ -228,7 +229,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
             separatorBuilder: (BuildContext context, int index) => _standardDivider(_dividerColor),
             itemBuilder: (BuildContext context, int index) => _resultTile(index),
           )
-        : pad(_instructions, theme.textTheme.bodyText1);
+        : pad(_running ? _inProgress : _instructions, theme.textTheme.bodyText1);
   }
 
   // all the list indexes of allowed source numbers
