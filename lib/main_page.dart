@@ -161,7 +161,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
         body: ChipTheme(
           data: ChipTheme.of(context).copyWith(shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10)))),
           child: OrientationBuilder(
-              builder: (context, orientation) => orientation == Orientation.portrait ? _verticalLayout() : _horizontalLayout()),
+              builder: (context, orientation) => orientation == Orientation.portrait ? _verticalLayout() : _verticalLayout()),
         ));
   }
 
