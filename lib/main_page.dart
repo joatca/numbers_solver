@@ -57,7 +57,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
     fontSize: 16,
   );
   static final _tagStyle = TextStyle(
-    fontSize: 10,
+    fontSize: 8,
     fontStyle: FontStyle.italic,
   );
   static final _targetStyle = TextStyle(
