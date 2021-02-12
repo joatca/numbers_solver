@@ -33,7 +33,7 @@ class Game {
   Game(this._values, this._target) {
     _steps = [];
     _avail = List.filled(_values.length, true, growable: false);
-    _curLabel = _values.last.label + 1;
+    _curLabel = _values.last.label;
   }
 
   Iterable<Solution> _solve(int remaining) sync* {

@@ -47,6 +47,14 @@ class _MainPageState extends State<MainPage> with TextUtil {
   List<bool> _sourcesSelected = List<bool>.filled(_sourcesAllowed.length, false);
   // number of sources required before allowing a solve
   static const _numSourcesRequired = 6;
+  // characters to use as labels
+  static final int _firstLabelCode = 'A'.codeUnitAt(0);
+  // labels start at zero; the source numbers first and then intermediates, so we want _numSourcesRequired of the first then the
+  // same number of the second
+  static final List<String> _labelLookup = Iterable.generate(_numSourcesRequired * 2, (i) => i + _firstLabelCode)
+      .map((code) => String.fromCharCode(code))
+      .toList();
+
   // maximum length of the target number, used for the textfield
   static const _maxTargetLength = 3;
   // maximum number of solutions to store
@@ -72,7 +80,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
     fontSize: 16,
   );
   static final _tagStyle = TextStyle(
-    fontSize: 8,
+    fontSize: 10,
     fontStyle: FontStyle.italic,
   );
   static final _targetStyle = TextStyle(
@@ -84,7 +92,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
   static final _resultUnder10Style = _targetStyle;
   static final _resultOver10Style = _resultUnder10Style.copyWith(color: Colors.red);
 
-  static const String instructions = '''
+  static const String _instructions = '''
   To solve a Number Game, select 6 "source" numbers then enter a target number between 100 and 999
   
   To solve a different puzzle press the clear button, de-select/re-select to choose different source numbers, or edit the target number.
@@ -220,7 +228,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
             separatorBuilder: (BuildContext context, int index) => _standardDivider(_dividerColor),
             itemBuilder: (BuildContext context, int index) => _resultTile(index),
           )
-        : pad(instructions, theme.textTheme.bodyText1);
+        : pad(_instructions, theme.textTheme.bodyText1);
   }
 
   // all the list indexes of allowed source numbers
@@ -268,10 +276,18 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   // returns a value (number plus tag)
   Widget _valueTile(Value v) {
-    return Text(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+      Text(
         v.num.toString(),
         style: _numberStyle,
-    );
+      ),
+      Text(
+        _labelLookup[v.label],
+        style: _tagStyle,
+      ),
+    ],);
   }
 
   Widget _stepTile(SolutionStep step) {
