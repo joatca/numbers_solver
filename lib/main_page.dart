@@ -108,8 +108,6 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   // to store the theme to avoid calling it all the time
   ThemeData theme;
-  // used to jump focus to the target field when all source numbers have been select but the target field is empty
-  FocusNode focusNode;
   // used to attempt to dismiss the keyboard once we start solving
   TextEditingController targetTextController = TextEditingController();
 
@@ -122,12 +120,10 @@ class _MainPageState extends State<MainPage> with TextUtil {
   @override
   void initState() {
     super.initState();
-    focusNode = FocusNode();
   }
 
   @override
   void dispose() {
-    focusNode.dispose();
     super.dispose();
   }
 
@@ -219,7 +215,6 @@ class _MainPageState extends State<MainPage> with TextUtil {
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
             controller: targetTextController,
-            focusNode: focusNode,
             decoration: InputDecoration(
               hintText: 'Target',
               border: const OutlineInputBorder(),
@@ -378,10 +373,6 @@ class _MainPageState extends State<MainPage> with TextUtil {
       // only set it if we have less than the limit already
       setState(() {
         _sourcesSelected[index] = true;
-        if (numSelected == _numSourcesRequired - 1 && _targetNumber == 0) {
-          // we just set the last one *and* the target field is unset
-          focusNode.requestFocus();
-        }
         maybeSolve();
       });
     }
