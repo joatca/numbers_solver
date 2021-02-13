@@ -126,22 +126,25 @@ class _MainPageState extends State<MainPage> with TextUtil {
   void _loadPreviousValues() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      final String vals = prefs.getString('state');
-      if (vals != null) {
-        // values are the source numbers followed by the target number
+      final String sourceIndexes = prefs.getString('sources');
+      _targetNumber = prefs.getInt('target') ?? 0;
+      if (_targetNumber > 0) {
+        // only try to set the target field if it's > 0, otherwise we can leave it blank
+        targetTextController.text = _targetNumber.toString();
+      }
+      if (sourceIndexes != null) {
+        // values are the source numbers comma-separated
         try {
-          final List<int> nums = vals.split(',').map((s) => int.parse(s)).toList();
-          _targetNumber = nums.removeLast();
-          targetTextController.text = _targetNumber.toString();
-          // the remaining numbers are indexes of source numbers
+          final List<int> nums = sourceIndexes.split(',').map((s) => int.parse(s)).toList();
           nums.forEach((index) {
             if (index < _sourcesSelected.length) {
               _sourcesSelected[index] = true;
             }
           });
           maybeSolve();
-        } on Exception {
+        } on Exception catch (e) {
           // probably some parsing error, we don't care, just fail to load
+          print("exception: $e");
         }
       }
     });
@@ -149,8 +152,10 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   void _saveValues() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String indexes = _sourcesSelected.indexed().where((each) => each.value).map((each) => each.index.toString()).join(',');
-    prefs.setString('state', "$indexes,$_targetNumber");
+    prefs.setString('sources', _sourcesSelected.indexed().where((each) => each.value).map((each) => each.index.toString()).join(','
+        ''));
+    prefs.setInt('target', _targetNumber);
+    prefs.remove('state');
   }
 
   @override
