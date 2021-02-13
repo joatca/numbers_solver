@@ -23,6 +23,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:numbers_solver/game_classes.dart';
 import 'package:more/iterable.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'solution_sender.dart';
 import 'game_classes.dart';
 import 'info_page.dart';
@@ -108,7 +109,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   // to store the theme to avoid calling it all the time
   ThemeData theme;
-  // used to attempt to dismiss the keyboard once we start solving
+  // used to attempt to dismiss the keyboard once we start solving, and to set the initial target number from saved prefs
   TextEditingController targetTextController = TextEditingController();
 
   // some not-quite-state that gets initialized in the build method
@@ -116,10 +117,40 @@ class _MainPageState extends State<MainPage> with TextUtil {
   Color _numberChipUnselectedColor;
   Color _numberChipSelectedColor;
 
-  // set up the focusnode so it can be used later
   @override
   void initState() {
     super.initState();
+    _loadPreviousValues();
+  }
+
+  void _loadPreviousValues() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      final String vals = prefs.getString('state');
+      if (vals != null) {
+        // values are the source numbers followed by the target number
+        try {
+          final List<int> nums = vals.split(',').map((s) => int.parse(s)).toList();
+          _targetNumber = nums.removeLast();
+          targetTextController.text = _targetNumber.toString();
+          // the remaining numbers are indexes of source numbers
+          nums.forEach((index) {
+            if (index < _sourcesSelected.length) {
+              _sourcesSelected[index] = true;
+            }
+          });
+          maybeSolve();
+        } on Exception {
+          // probably some parsing error, we don't care, just fail to load
+        }
+      }
+    });
+  }
+
+  void _saveValues() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String indexes = _sourcesSelected.indexed().where((each) => each.value).map((each) => each.index.toString()).join(',');
+    prefs.setString('state', "$indexes,$_targetNumber");
   }
 
   @override
@@ -228,6 +259,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
                 } else {
                   _targetNumber = 0;
                 }
+                _saveValues();
                 _solutions.clear();
                 maybeSolve();
               });
@@ -373,6 +405,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
       // only set it if we have less than the limit already
       setState(() {
         _sourcesSelected[index] = true;
+        _saveValues();
         maybeSolve();
       });
     }
@@ -382,6 +415,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
   void removeSource(int index) {
     setState(() {
       _sourcesSelected[index] = false;
+      _saveValues();
       _solutions.clear();
     });
   }
@@ -392,6 +426,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
     } else {
       final readyToSolve = _countSelected() == _numSourcesRequired && _targetNumber >= 100;
       final sourcesIncludeTarget = _selectedIndexes().any((i) => _sourcesAllowed[i] == _targetNumber);
+      print("ready $readyToSolve target $_targetNumber");
       if (readyToSolve && !sourcesIncludeTarget) {
         _initSolver();
       }
@@ -406,6 +441,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
       _selectedIndexes().forEach((i) {
         _sourcesSelected[i] = false;
       });
+      _saveValues();
       _solutions.clear();
       targetTextController.clear();
     });
