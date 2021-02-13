@@ -152,8 +152,10 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   void _saveValues() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('sources', _sourcesSelected.indexed().where((each) => each.value).map((each) => each.index.toString()).join(','
-        ''));
+    prefs.setString(
+      'sources',
+      _sourcesSelected.indexed().where((each) => each.value).map((each) => each.index.toString()).join(','),
+    );
     prefs.setInt('target', _targetNumber);
     prefs.remove('state');
   }
