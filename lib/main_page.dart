@@ -4,7 +4,7 @@ long-running European game shows
 
 Copyright (C) 2021 Fraser McCrossan
 
-flax is free software: you can redistribute it and/or modify
+Numbers Solver is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
@@ -38,7 +38,6 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> with TextUtil {
-
   // first some constants (or effective constants)
 
   // maximum length of the target number, used for the textfield
@@ -75,9 +74,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
   static final int _firstLabelCode = 'A'.codeUnitAt(0);
   // labels start at zero; the source numbers first and then intermediates, so we want _numSourcesRequired of the first then the
   // same number of the second
-  static final List<String> _labelLookup = Iterable.generate(_numSourcesRequired * 2, (i) => i + _firstLabelCode)
-      .map((code) => String.fromCharCode(code))
-      .toList();
+  static final List<String> _labelLookup =
+      Iterable.generate(_numSourcesRequired * 2, (i) => i + _firstLabelCode).map((code) => String.fromCharCode(code)).toList();
 
   // UI messages
   static const String _instructions = '''
@@ -160,8 +158,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
         ]),
         body: ChipTheme(
           data: ChipTheme.of(context).copyWith(shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10)))),
-          child: OrientationBuilder(
-              builder: (context, orientation) => orientation == Orientation.portrait ? _verticalLayout() : _verticalLayout()),
+          child: LayoutBuilder(
+              builder: (context, constraints) => constraints.maxWidth > 550 ? _horizontalLayout() : _verticalLayout()),
         ));
   }
 
@@ -182,21 +180,24 @@ class _MainPageState extends State<MainPage> with TextUtil {
   }
 
   Widget _horizontalLayout() {
-    return Row(children: [
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Flexible(
         child: _solutionList(),
+        flex: 3,
       ),
       Flexible(
-          child: Column(
-        // full contents of right section
-        children: [
-          Wrap(
-            children: _allChips(),
-          ),
-          _standardDivider(_dividerColor),
-          _targetField(),
-        ],
-      ))
+        child: Column(
+          // full contents of right section
+          children: [
+            Wrap(
+              children: _allChips(),
+            ),
+            _standardDivider(_dividerColor),
+            _targetField(),
+          ],
+        ),
+        flex: 2,
+      )
     ]);
   }
 
@@ -295,16 +296,17 @@ class _MainPageState extends State<MainPage> with TextUtil {
   Widget _valueTile(Value v) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-      Text(
-        v.num.toString(),
-        style: _numberStyle,
-      ),
-      Text(
-        _labelLookup[v.label],
-        style: _tagStyle,
-      ),
-    ],);
+      children: [
+        Text(
+          v.num.toString(),
+          style: _numberStyle,
+        ),
+        Text(
+          _labelLookup[v.label],
+          style: _tagStyle,
+        ),
+      ],
+    );
   }
 
   Widget _stepTile(SolutionStep step) {
