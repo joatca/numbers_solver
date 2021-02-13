@@ -108,9 +108,9 @@ class _MainPageState extends State<MainPage> with TextUtil {
   SendPort _sendToSolver;
 
   // to store the theme to avoid calling it all the time
-  ThemeData theme;
+  ThemeData _theme;
   // used to attempt to dismiss the keyboard once we start solving, and to set the initial target number from saved prefs
-  TextEditingController targetTextController = TextEditingController();
+  TextEditingController _targetTextController = TextEditingController();
 
   // some not-quite-state that gets initialized in the build method
   Color _dividerColor;
@@ -130,7 +130,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
       _targetNumber = prefs.getInt('target') ?? 0;
       if (_targetNumber > 0) {
         // only try to set the target field if it's > 0, otherwise we can leave it blank
-        targetTextController.text = _targetNumber.toString();
+        _targetTextController.text = _targetNumber.toString();
       }
       if (sourceIndexes != null) {
         // values are the source numbers comma-separated
@@ -165,10 +165,10 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   @override
   Widget build(BuildContext context) {
-    theme = Theme.of(context);
-    _dividerColor = theme.textTheme.button.color.withOpacity(0.2);
-    _numberChipUnselectedColor = theme.backgroundColor;
-    _numberChipSelectedColor = theme.accentColor;
+    _theme = Theme.of(context);
+    _dividerColor = _theme.textTheme.button.color.withOpacity(0.2);
+    _numberChipUnselectedColor = _theme.backgroundColor;
+    _numberChipSelectedColor = _theme.accentColor;
     final clearable = _sourcesSelected.any((i) => i) || _targetNumber > 0;
     return Scaffold(
         appBar: AppBar(title: Text(widget.title), actions: <Widget>[
@@ -250,7 +250,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
             showCursor: true,
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
-            controller: targetTextController,
+            controller: _targetTextController,
             decoration: InputDecoration(
               hintText: 'Target',
               border: const OutlineInputBorder(),
@@ -278,7 +278,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
             separatorBuilder: (BuildContext context, int index) => _standardDivider(_dividerColor),
             itemBuilder: (BuildContext context, int index) => _resultTile(index),
           )
-        : pad(_running ? _inProgress : _instructions, theme.textTheme.bodyText1);
+        : pad(_running ? _inProgress : _instructions, _theme.textTheme.bodyText1);
   }
 
   // all the list indexes of allowed source numbers
@@ -448,7 +448,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
       });
       _saveValues();
       _solutions.clear();
-      targetTextController.clear();
+      _targetTextController.clear();
     });
   }
 
