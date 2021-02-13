@@ -43,9 +43,6 @@ class Value {
   String toString() {
     return "$num[$label]";
   }
-
-  bool operator ==(Object other) =>
-      other is Value && num == other.num && label == other.label;
 }
 
 abstract class Op {
@@ -55,8 +52,6 @@ abstract class Op {
   String toString() {
     return symbol();
   }
-
-  bool operator ==(Object other) => other is Op && symbol() == other.symbol();
 }
 
 class Add extends Op {
@@ -122,13 +117,6 @@ class SolutionStep {
   String toString() {
     return "$v1$op$v2=$result";
   }
-
-  bool operator ==(Object other) =>
-      other is SolutionStep &&
-      op == other.op &&
-      v1 == other.v1 &&
-      v2 == other.v2 &&
-      result == other.result;
 }
 
 class Solution with Comparable {
@@ -162,9 +150,5 @@ class Solution with Comparable {
 
   String toString() {
     return "${steps.map((step) => step.toString()).join('; ')} ($away away)";
-  }
-
-  bool operator ==(Object other) {
-    return this.compareTo(other) == 0;
   }
 }
