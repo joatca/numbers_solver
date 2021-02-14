@@ -30,16 +30,34 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+/*
+ * Gets the version name from the latest Git tag
+ */
+def getVersionName = { ->
+    def tagout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'describe', '--tags'
+        standardOutput = tagout
+    }
+    def tagName = tagout.toString().trim()
+    def hashout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = hashout
+    }
+    def hash = hashout.toString().trim()
+    return tagName + ' (rev ' + hash + ')'
+}
+
 android {
     compileSdkVersion 30
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId "me.joat.numbers_solver"
         minSdkVersion 16
         targetSdkVersion 30
         versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
+        versionName getVersionName()
     }
     signingConfigs {
        release {

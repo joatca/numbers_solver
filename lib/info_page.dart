@@ -19,10 +19,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import 'package:flutter/material.dart';
+import 'package:package_info/package_info.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'text_util.dart';
 
-class InfoPage extends StatelessWidget with TextUtil {
+class InfoPage extends StatefulWidget {
+  InfoPage({Key key, this.title}) : super(key: key);
+
+  final String title;
+
+  @override
+  _InfoPageState createState() => _InfoPageState();
+}
+
+class _InfoPageState extends State<InfoPage> with TextUtil {
   static const title = 'Numbers Game Solver';
   static const url = 'https://apps.joat.me/page/numbers/';
   static const ppUrl = 'https://apps.joat.me/page/privacy';
@@ -31,7 +41,13 @@ class InfoPage extends StatelessWidget with TextUtil {
   static const iconCopy = 'Icon based on timer by zidney from the Noun Project';
   static const license =
       'This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions';
+  String _version = '';
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchVersion();
+  }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
@@ -43,6 +59,7 @@ class InfoPage extends StatelessWidget with TextUtil {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           pad(title, theme.headline5),
+          pad('Version $_version', theme.bodyText2),
           pad('Copyright ⓒ $copyYear $copyright', theme.bodyText2),
           pad(iconCopy, theme.bodyText2),
           pad(license, theme.bodyText1),
@@ -71,6 +88,13 @@ class InfoPage extends StatelessWidget with TextUtil {
         ],
       ),
     );
+  }
+
+  _fetchVersion() async {
+    PackageInfo info = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = info.version;
+    });
   }
 
   _launchURL(String url) async {
