@@ -162,6 +162,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   @override
   void dispose() {
+    _killSolver();
     super.dispose();
   }
 
