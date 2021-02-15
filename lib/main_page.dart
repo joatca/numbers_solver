@@ -29,6 +29,9 @@ import 'game_classes.dart';
 import 'info_page.dart';
 import 'text_util.dart';
 
+enum EntryMode { normal, scary }
+enum MainMenuOptions { changeMode, about }
+
 class MainPage extends StatefulWidget {
   MainPage({Key key, this.title}) : super(key: key);
 
@@ -93,6 +96,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   // now some genuine state
 
+  // regular or scary mode?
+  EntryMode _entryMode = EntryMode.normal;
   // the actual target number
   var _targetNumber = 0;
   // which sources are currently selected?
@@ -180,15 +185,33 @@ class _MainPageState extends State<MainPage> with TextUtil {
             tooltip: 'Clear',
             onPressed: clearable ? _resetPuzzle : null,
           ),
-          IconButton(
-            icon: Icon(Icons.info_outline),
-            tooltip: 'About',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => InfoPage()),
-              );
+          PopupMenuButton<MainMenuOptions>(
+            onSelected: (MainMenuOptions mode) {
+              if (mode == MainMenuOptions.about) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => InfoPage()),
+                );
+              } else if (mode == MainMenuOptions.changeMode) {
+                setState(() {
+                  _entryMode = _entryMode == EntryMode.normal ? EntryMode.scary : EntryMode.normal;
+                });
+              }
             },
+            itemBuilder: (context) => <PopupMenuEntry<MainMenuOptions>>[
+              PopupMenuItem<MainMenuOptions>(
+                enabled: true,
+                value: MainMenuOptions.changeMode,
+                child: Text(
+                    _entryMode == EntryMode.normal ? 'Scary Mode' : 'Normal Mode',
+                ),
+              ),
+              PopupMenuItem<MainMenuOptions>(
+                enabled: true,
+                value: MainMenuOptions.about,
+                child: const Text('About'),
+              ),
+            ],
           )
         ]),
         body: ChipTheme(
