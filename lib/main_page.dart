@@ -44,8 +44,10 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> with TextUtil {
   // first some constants (or effective constants)
 
-  // maximum length of the target number, used for the textfield
+  // maximum length of the target number, used for the target textfield
   static const _maxTargetLength = 3;
+  // maximum length of the source numbers, used for the source textfields in scary mode
+  static const _maxSourceLength = 3;
   // maximum number of solutions to store
   static const _maxSolutions = 50; // plenty of options
   // number of sources required before allowing a solve
@@ -65,6 +67,9 @@ class _MainPageState extends State<MainPage> with TextUtil {
   );
   static final _targetStyle = TextStyle(
     fontSize: 20,
+  );
+  static final _sourceStyle = TextStyle(
+    fontSize: 16,
   );
   static final _sourceButtonStyle = TextStyle(
     fontSize: 18,
@@ -103,7 +108,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
   // which sources are currently selected?
   List<bool> _sourcesSelected = List<bool>.filled(_sourcesAllowed.length, false);
   // actual numbers - set by the chips as well as manually in scary mode
-  List<int> _sourceNumbers = List<int>.filled(_numSourcesRequired, null);
+  List<int> _sourceNumbers = List<int>.filled(_numSourcesRequired, 0);
   // the list of solutions found (so far)
   List<Solution> _solutions = [];
   // easy way to track whether we are running or now, used to tweak the UI
@@ -118,6 +123,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
   ThemeData _theme;
   // used to attempt to dismiss the keyboard once we start solving, and to set the initial target number from saved prefs
   TextEditingController _targetTextController = TextEditingController();
+  // used to set source numbers from saved prefs
+  List<TextEditingController> _sourceControllers;
 
   // some not-quite-state that gets initialized in the build method
   Color _dividerColor;
@@ -128,26 +135,28 @@ class _MainPageState extends State<MainPage> with TextUtil {
   void initState() {
     super.initState();
     _loadPreviousValues();
+    _sourceControllers = _sourceNumbers.map((s) => TextEditingController()).toList(); // generate enough of them on the fly
   }
 
   void _loadPreviousValues() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      final String sourceIndexes = prefs.getString('sources');
+      final String sources = prefs.getString('sources');
       _targetNumber = prefs.getInt('target') ?? 0;
       if (_targetNumber > 0) {
         // only try to set the target field if it's > 0, otherwise we can leave it blank
         _targetTextController.text = _targetNumber.toString();
       }
-      if (sourceIndexes != null) {
+      if (sources != null) {
         // values are the source numbers comma-separated
+        print(sources);
         try {
-          final List<int> nums = sourceIndexes.split(',').map((s) => int.parse(s)).toList();
-          nums.forEach((index) {
-            if (index < _sourcesSelected.length) {
-              _sourcesSelected[index] = true;
-            }
-          });
+          final List<int> nums = sources.split(',').map((s) => int.parse(s)).toList();
+          _sourceNumbers.setAll(0, nums);
+          _setIndexesFromNumbers();
+          if (!_sourceNumbers.every((sn) => sn == 0 || _sourcesAllowed.any((sa) => sn == sa))) {
+            _entryMode = EntryMode.scary; // we found some numbers outside regular numbers
+          }
           maybeSolve();
         } on Exception catch (e) {
           // probably some parsing error, we don't care, just fail to load
@@ -161,7 +170,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString(
       'sources',
-      _sourcesSelected.indexed().where((each) => each.value).map((each) => each.index.toString()).join(','),
+      //_sourcesSelected.indexed().where((each) => each.value).map((each) => each.index.toString()).join(','),
+      _sourceNumbers.map((n) => n.toString()).join(',')
     );
     prefs.setInt('target', _targetNumber);
     prefs.remove('state');
@@ -226,9 +236,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
       mainAxisAlignment: MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.max,
       children: <Widget>[
-        Wrap(
-          children: _allChips(),
-        ),
+        _sourceEntryWidgets(),
         _standardDivider(_dividerColor),
         _targetField(),
         _standardDivider(_solutions.length > 0 ? _dividerColor : Colors.transparent),
@@ -247,9 +255,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
         child: Column(
           // full contents of right section
           children: [
-            Wrap(
-              children: _allChips(),
-            ),
+            _sourceEntryWidgets(),
             _standardDivider(_dividerColor),
             _targetField(),
           ],
@@ -312,7 +318,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   // all the indexes of selected source numbers
   Iterable<int> _selectedIndexes() => _allIndexes().where((i) => _sourcesSelected[i]);
-  
+
   // all the indexes of the _sourceNumbers list
   Iterable<int> _sourceNumberIndexes() => Iterable.generate(_sourceNumbers.length, (i) => i);
 
@@ -320,7 +326,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
   Iterable<Value> _selectedValues() => _sourceNumbers.indexed().map((each) => Value(each.value, each.index));
 
   // how many are selected? not exactly efficient but meh
-  int _countSelected() => _sourceNumbers.where((n) => n != null).length;
+  int _countSelected() => _sourceNumbers.where((n) => n != 0).length;
 
   // converts a source number index to a selectable chip
   Widget _numberChip(int index, void Function(bool) action) {
@@ -348,6 +354,49 @@ class _MainPageState extends State<MainPage> with TextUtil {
         }
       });
     }).toList();
+  }
+
+  List<Widget> _allSourceFields() {
+    return _sourceNumberIndexes().map<Widget>((i) {
+      return _numberField(i);
+    }).toList();
+  }
+
+  Widget _numberField(int index) {
+    return Flexible(
+        child: TextField(
+            maxLength: _maxSourceLength,
+            style: _sourceStyle,
+            maxLines: 1,
+            showCursor: true,
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            controller: _sourceControllers[index],
+            decoration: InputDecoration(
+              hintText: 'src',
+              border: const OutlineInputBorder(),
+              contentPadding: EdgeInsets.all(1.0),
+              counterText: '', // don't show the counter'
+            ),
+            onChanged: (String val) async {
+              setState(() {
+                _sourceNumbers[index] = val.length > 0 ? int.parse(val) : 0;
+                _setIndexesFromNumbers();
+                _saveValues();
+                _solutions.clear();
+                maybeSolve();
+              });
+            }));
+  }
+
+  Widget _sourceEntryWidgets() {
+    if (_entryMode == EntryMode.normal) {
+      return Wrap(
+        children: _allChips(),
+      );
+    } else {
+      return Row(children: _allSourceFields());
+    }
   }
 
   Widget _resultTile(int index) => _solutionTile(_solutions[index]);
@@ -434,7 +483,32 @@ class _MainPageState extends State<MainPage> with TextUtil {
   // change between normal and scary mode
   void _toggleMode() {
     setState(() {
-      _entryMode = _entryMode == EntryMode.normal ? EntryMode.scary : EntryMode.normal;
+      if (_entryMode == EntryMode.normal) {
+        // switch from normal mode to scary mode
+        _entryMode = EntryMode.scary;
+        // selected numbers are updated by the chip selectors so no further action required
+      } else {
+        // switch from scary mode to normal mode
+        _entryMode = EntryMode.normal;
+        _setIndexesFromNumbers();
+      }
+    });
+  }
+
+  // do our best to set _sourcesSelected from the current contents of _sourceNumbers
+  void _setIndexesFromNumbers() {
+    _allIndexes().forEach((i) {
+      _sourcesSelected[i] = false;
+    });
+    _sourceNumbers.forEach((element) {
+      if (element != 0) {
+        for (var i in _allIndexes()) {
+          if (_sourcesSelected[i] == false && _sourcesAllowed[i] == element) {
+            _sourcesSelected[i] = true;
+            break;
+          }
+        }
+      }
     });
   }
 
@@ -444,10 +518,9 @@ class _MainPageState extends State<MainPage> with TextUtil {
       // only set it if we have less than the limit already
       setState(() {
         _sourcesSelected[index] = true;
-        final firstEmpty = _sourceNumbers.indexOf(null);
+        final firstEmpty = _sourceNumbers.indexOf(0);
         _sourceNumbers[firstEmpty] = _sourcesAllowed[index];
-        //_sourceNumbers.sort();
-        print(_sourceNumbers);
+        _sourceControllers[firstEmpty].text = _sourceNumbers[firstEmpty].toString();
         _saveValues();
         maybeSolve();
       });
@@ -459,8 +532,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
     setState(() {
       _sourcesSelected[index] = false;
       final firstWith = _sourceNumbers.indexOf(_sourcesAllowed[index]);
-      _sourceNumbers[firstWith] = null;
-      print(_sourceNumbers);
+      _sourceNumbers[firstWith] = 0;
+      _sourceControllers[firstWith].text = '';
       _saveValues();
       _solutions.clear();
     });
@@ -472,7 +545,6 @@ class _MainPageState extends State<MainPage> with TextUtil {
     } else {
       final readyToSolve = _countSelected() == _numSourcesRequired && _targetNumber >= 100;
       final sourcesIncludeTarget = _sourceNumbers.any((n) => n == _targetNumber);
-      print("ready $readyToSolve target $_targetNumber");
       if (readyToSolve && !sourcesIncludeTarget) {
         _initSolver();
       }
@@ -488,9 +560,9 @@ class _MainPageState extends State<MainPage> with TextUtil {
         _sourcesSelected[i] = false;
       });
       _sourceNumberIndexes().forEach((i) {
-        _sourceNumbers[i] = null;
+        _sourceNumbers[i] = 0;
+        _sourceControllers[i].text = '';
       });
-      print(_sourceNumbers);
       _saveValues();
       _solutions.clear();
       _targetTextController.clear();
@@ -540,9 +612,12 @@ class _MainPageState extends State<MainPage> with TextUtil {
   }
 
   void _hideKeyboard() {
-    setState(() {
-      FocusScope.of(context).unfocus(); // dismiss the keyboard if possible
-    });
+    if (_entryMode == EntryMode.normal) {
+      // only tweak the focus if we are in normal mode - it's too annoying in scary mode
+      setState(() {
+        FocusScope.of(context).unfocus(); // dismiss the keyboard if possible
+      });
+    }
   }
 
   // called when the Solve button is pressed; clear the onscreen kb if possible, clear the solutions then start up the solver isolate
