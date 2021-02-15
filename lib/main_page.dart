@@ -21,6 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import 'dart:isolate';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:numbers_solver/game_classes.dart';
 import 'package:more/iterable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -125,6 +126,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
   TextEditingController _targetTextController = TextEditingController();
   // used to set source numbers from saved prefs
   List<TextEditingController> _sourceControllers;
+  // a filter to prevent entry of anything other than digits, used on all text controllers
+  TextInputFormatter _digitsOnlyFormatter;
 
   // some not-quite-state that gets initialized in the build method
   Color _dividerColor;
@@ -136,6 +139,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
     super.initState();
     _loadPreviousValues();
     _sourceControllers = _sourceNumbers.map((s) => TextEditingController()).toList(); // generate enough of them on the fly
+    _digitsOnlyFormatter = FilteringTextInputFormatter.digitsOnly;
   }
 
   void _loadPreviousValues() async {
@@ -284,6 +288,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
             controller: _targetTextController,
+            inputFormatters: [_digitsOnlyFormatter],
             decoration: InputDecoration(
               hintText: 'Target',
               border: const OutlineInputBorder(),
@@ -376,6 +381,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
                 textAlign: TextAlign.center,
                 keyboardType: TextInputType.number,
                 controller: _sourceControllers[index],
+                inputFormatters: [_digitsOnlyFormatter],
                 decoration: InputDecoration(
                   hintText: '-',
                   border: const OutlineInputBorder(),
