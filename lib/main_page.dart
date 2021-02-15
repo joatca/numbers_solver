@@ -149,13 +149,15 @@ class _MainPageState extends State<MainPage> with TextUtil {
       }
       if (sources != null) {
         // values are the source numbers comma-separated
-        print(sources);
         try {
           final List<int> nums = sources.split(',').map((s) => int.parse(s)).toList();
-          _sourceNumbers.setAll(0, nums);
-          _setIndexesFromNumbers();
+          nums.indexed().forEach((each) {
+            _setSourceNumber(each.index, each.value);
+          });
           if (!_sourceNumbers.every((sn) => sn == 0 || _sourcesAllowed.any((sa) => sn == sa))) {
             _entryMode = EntryMode.scary; // we found some numbers outside regular numbers
+          } else {
+            _setIndexesFromNumbers();
           }
           maybeSolve();
         } on Exception catch (e) {
@@ -167,12 +169,13 @@ class _MainPageState extends State<MainPage> with TextUtil {
   }
 
   void _saveValues() async {
+    if (_entryMode == EntryMode.normal) {
+      _setNumbersFromIndexes();
+    }
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString(
-      'sources',
-      //_sourcesSelected.indexed().where((each) => each.value).map((each) => each.index.toString()).join(','),
-      _sourceNumbers.map((n) => n.toString()).join(',')
-    );
+        'sources',
+        _sourceNumbers.map((n) => n.toString()).join(','));
     prefs.setInt('target', _targetNumber);
     prefs.remove('state');
   }
@@ -364,7 +367,10 @@ class _MainPageState extends State<MainPage> with TextUtil {
 
   Widget _numberField(int index) {
     return Flexible(
-        child: TextField(
+        child: Container(
+        padding: EdgeInsets.fromLTRB(4, 2, 4, 2),
+    width: _targetWidth,
+    child: TextField(
             maxLength: _maxSourceLength,
             style: _sourceStyle,
             maxLines: 1,
@@ -373,7 +379,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
             keyboardType: TextInputType.number,
             controller: _sourceControllers[index],
             decoration: InputDecoration(
-              hintText: 'src',
+              hintText: '-',
               border: const OutlineInputBorder(),
               contentPadding: EdgeInsets.all(1.0),
               counterText: '', // don't show the counter'
@@ -386,7 +392,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
                 _solutions.clear();
                 maybeSolve();
               });
-            }));
+            })));
   }
 
   Widget _sourceEntryWidgets() {
@@ -486,11 +492,12 @@ class _MainPageState extends State<MainPage> with TextUtil {
       if (_entryMode == EntryMode.normal) {
         // switch from normal mode to scary mode
         _entryMode = EntryMode.scary;
-        // selected numbers are updated by the chip selectors so no further action required
+        _setNumbersFromIndexes();
       } else {
         // switch from scary mode to normal mode
         _entryMode = EntryMode.normal;
         _setIndexesFromNumbers();
+        _saveValues(); // might have lost some numbers so must update now else the saved values will still include scary numbers
       }
     });
   }
@@ -512,16 +519,30 @@ class _MainPageState extends State<MainPage> with TextUtil {
     });
   }
 
+  // do our best to set the numbers from the set index fields (which may mean discarding values that aren't allowed)
+  void _setNumbersFromIndexes() {
+    _sourceNumberIndexes().forEach((i) {
+      _setSourceNumber(i, 0);
+    });
+    var numberIndex = 0;
+    _selectedIndexes().forEach((selectedIndex) {
+      _setSourceNumber(numberIndex++, _sourcesAllowed[selectedIndex]);
+    });
+  }
+
+  // everything needed to set a source value, include the matching text field
+  void _setSourceNumber(int index, int value) {
+    _sourceNumbers[index] = value;
+    _sourceControllers[index].text = value == 0 ? '' : value.toString();
+  }
+
   // action to take when an unselected chip is pressed
   void addSource(int index) {
     if (_countSelected() < _numSourcesRequired) {
       // only set it if we have less than the limit already
       setState(() {
         _sourcesSelected[index] = true;
-        final firstEmpty = _sourceNumbers.indexOf(0);
-        _sourceNumbers[firstEmpty] = _sourcesAllowed[index];
-        _sourceControllers[firstEmpty].text = _sourceNumbers[firstEmpty].toString();
-        _saveValues();
+        _saveValues(); // copies values to text fields so no need to do it here
         maybeSolve();
       });
     }
@@ -531,10 +552,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
   void removeSource(int index) {
     setState(() {
       _sourcesSelected[index] = false;
-      final firstWith = _sourceNumbers.indexOf(_sourcesAllowed[index]);
-      _sourceNumbers[firstWith] = 0;
-      _sourceControllers[firstWith].text = '';
-      _saveValues();
+      _saveValues(); // copies values to text fields so no need to do it here
       _solutions.clear();
     });
   }
