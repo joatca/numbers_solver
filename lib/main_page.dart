@@ -102,6 +102,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
   var _targetNumber = 0;
   // which sources are currently selected?
   List<bool> _sourcesSelected = List<bool>.filled(_sourcesAllowed.length, false);
+  // actual numbers - set by the chips as well as manually in scary mode
+  List<int> _sourceNumbers = List<int>.filled(_numSourcesRequired, null);
   // the list of solutions found (so far)
   List<Solution> _solutions = [];
   // easy way to track whether we are running or now, used to tweak the UI
@@ -193,9 +195,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
                   MaterialPageRoute(builder: (context) => InfoPage()),
                 );
               } else if (mode == MainMenuOptions.changeMode) {
-                setState(() {
-                  _entryMode = _entryMode == EntryMode.normal ? EntryMode.scary : EntryMode.normal;
-                });
+                _toggleMode();
               }
             },
             itemBuilder: (context) => <PopupMenuEntry<MainMenuOptions>>[
@@ -203,7 +203,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
                 enabled: true,
                 value: MainMenuOptions.changeMode,
                 child: Text(
-                    _entryMode == EntryMode.normal ? 'Scary Mode' : 'Normal Mode',
+                  _entryMode == EntryMode.normal ? 'Scary Mode' : 'Normal Mode',
                 ),
               ),
               PopupMenuItem<MainMenuOptions>(
@@ -310,17 +310,20 @@ class _MainPageState extends State<MainPage> with TextUtil {
   // all the list indexes of allowed source numbers
   Iterable<int> _allIndexes() => Iterable.generate(_sourcesAllowed.length, (i) => i);
 
-  // all the indexes of select source numbers
+  // all the indexes of selected source numbers
   Iterable<int> _selectedIndexes() => _allIndexes().where((i) => _sourcesSelected[i]);
+  
+  // all the indexes of the _sourceNumbers list
+  Iterable<int> _sourceNumberIndexes() => Iterable.generate(_sourceNumbers.length, (i) => i);
 
   // all the selected numbers
-  Iterable<Value> _selectedValues() => _selectedIndexes().indexed().map((each) => Value(_sourcesAllowed[each.value], each.index));
+  Iterable<Value> _selectedValues() => _sourceNumbers.indexed().map((each) => Value(each.value, each.index));
 
   // how many are selected? not exactly efficient but meh
-  int _countSelected() => _selectedIndexes().length;
+  int _countSelected() => _sourceNumbers.where((n) => n != null).length;
 
   // converts a source number index to a selectable chip
-  Widget _numberChip(int index, int colorNumber, void Function(bool) action) {
+  Widget _numberChip(int index, void Function(bool) action) {
     return Container(
         padding: EdgeInsets.only(left: 1.0, right: 1.0),
         child: FilterChip(
@@ -328,7 +331,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
             showCheckmark: false,
             onSelected: action,
             backgroundColor: _numberChipUnselectedColor,
-            selectedColor: _numberChipSelectedColor, //colors[colorNumber],
+            selectedColor: _numberChipSelectedColor,
             label: Text(
               _sourcesAllowed[index].toString(),
               style: _sourceButtonStyle,
@@ -336,9 +339,8 @@ class _MainPageState extends State<MainPage> with TextUtil {
   }
 
   List<Widget> _allChips() {
-    int _selectedColorNumber = 0;
     return _allIndexes().map<Widget>((i) {
-      return _numberChip(i, _sourcesSelected[i] ? _selectedColorNumber++ : _selectedColorNumber, (bool selected) {
+      return _numberChip(i, (bool selected) {
         if (selected) {
           addSource(i);
         } else {
@@ -429,13 +431,23 @@ class _MainPageState extends State<MainPage> with TextUtil {
     return size.width;
   }
 
+  // change between normal and scary mode
+  void _toggleMode() {
+    setState(() {
+      _entryMode = _entryMode == EntryMode.normal ? EntryMode.scary : EntryMode.normal;
+    });
+  }
+
   // action to take when an unselected chip is pressed
   void addSource(int index) {
-    final numSelected = _countSelected();
-    if (numSelected < _numSourcesRequired) {
+    if (_countSelected() < _numSourcesRequired) {
       // only set it if we have less than the limit already
       setState(() {
         _sourcesSelected[index] = true;
+        final firstEmpty = _sourceNumbers.indexOf(null);
+        _sourceNumbers[firstEmpty] = _sourcesAllowed[index];
+        //_sourceNumbers.sort();
+        print(_sourceNumbers);
         _saveValues();
         maybeSolve();
       });
@@ -446,6 +458,9 @@ class _MainPageState extends State<MainPage> with TextUtil {
   void removeSource(int index) {
     setState(() {
       _sourcesSelected[index] = false;
+      final firstWith = _sourceNumbers.indexOf(_sourcesAllowed[index]);
+      _sourceNumbers[firstWith] = null;
+      print(_sourceNumbers);
       _saveValues();
       _solutions.clear();
     });
@@ -456,7 +471,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
       _killSolver();
     } else {
       final readyToSolve = _countSelected() == _numSourcesRequired && _targetNumber >= 100;
-      final sourcesIncludeTarget = _selectedIndexes().any((i) => _sourcesAllowed[i] == _targetNumber);
+      final sourcesIncludeTarget = _sourceNumbers.any((n) => n == _targetNumber);
       print("ready $readyToSolve target $_targetNumber");
       if (readyToSolve && !sourcesIncludeTarget) {
         _initSolver();
@@ -472,6 +487,10 @@ class _MainPageState extends State<MainPage> with TextUtil {
       _selectedIndexes().forEach((i) {
         _sourcesSelected[i] = false;
       });
+      _sourceNumberIndexes().forEach((i) {
+        _sourceNumbers[i] = null;
+      });
+      print(_sourceNumbers);
       _saveValues();
       _solutions.clear();
       _targetTextController.clear();
