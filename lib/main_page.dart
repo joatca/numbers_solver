@@ -173,9 +173,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
       _setNumbersFromIndexes();
     }
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString(
-        'sources',
-        _sourceNumbers.map((n) => n.toString()).join(','));
+    prefs.setString('sources', _sourceNumbers.map((n) => n.toString()).join(','));
     prefs.setInt('target', _targetNumber);
     prefs.remove('state');
   }
@@ -368,31 +366,31 @@ class _MainPageState extends State<MainPage> with TextUtil {
   Widget _numberField(int index) {
     return Flexible(
         child: Container(
-        padding: EdgeInsets.fromLTRB(4, 2, 4, 2),
-    width: _targetWidth,
-    child: TextField(
-            maxLength: _maxSourceLength,
-            style: _sourceStyle,
-            maxLines: 1,
-            showCursor: true,
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            controller: _sourceControllers[index],
-            decoration: InputDecoration(
-              hintText: '-',
-              border: const OutlineInputBorder(),
-              contentPadding: EdgeInsets.all(1.0),
-              counterText: '', // don't show the counter'
-            ),
-            onChanged: (String val) async {
-              setState(() {
-                _sourceNumbers[index] = val.length > 0 ? int.parse(val) : 0;
-                _setIndexesFromNumbers();
-                _saveValues();
-                _solutions.clear();
-                maybeSolve();
-              });
-            })));
+            padding: EdgeInsets.fromLTRB(4, 2, 4, 2),
+            width: _targetWidth,
+            child: TextField(
+                maxLength: _maxSourceLength,
+                style: _sourceStyle,
+                maxLines: 1,
+                showCursor: true,
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                controller: _sourceControllers[index],
+                decoration: InputDecoration(
+                  hintText: '-',
+                  border: const OutlineInputBorder(),
+                  contentPadding: EdgeInsets.all(1.0),
+                  counterText: '', // don't show the counter'
+                ),
+                onChanged: (String val) async {
+                  setState(() {
+                    _sourceNumbers[index] = val.length > 0 ? int.parse(val) : 0;
+                    _setIndexesFromNumbers();
+                    _saveValues();
+                    _solutions.clear();
+                    maybeSolve();
+                  });
+                })));
   }
 
   Widget _sourceEntryWidgets() {
