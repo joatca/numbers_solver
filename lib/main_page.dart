@@ -564,12 +564,11 @@ class _MainPageState extends State<MainPage> with TextUtil {
   void maybeSolve() {
     if (_running) {
       _killSolver();
-    } else {
-      final readyToSolve = _countSelected() == _numSourcesRequired && _targetNumber >= 100;
-      final sourcesIncludeTarget = _sourceNumbers.any((n) => n == _targetNumber);
-      if (readyToSolve && !sourcesIncludeTarget) {
-        _initSolver();
-      }
+    }
+    final readyToSolve = _countSelected() == _numSourcesRequired && _targetNumber >= 100;
+    final sourcesIncludeTarget = _sourceNumbers.any((n) => n == _targetNumber);
+    if (readyToSolve && !sourcesIncludeTarget) {
+      _initSolver();
     }
   }
 
