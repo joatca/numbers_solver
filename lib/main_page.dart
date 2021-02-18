@@ -148,7 +148,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
                 checked: gameState.scaryMode,
                 value: MainMenuOptions.changeMode,
                 child: Text(
-                  'Scary Numbers Mode',
+                  'Scary Numbers',
                 ),
               ),
               PopupMenuItem<MainMenuOptions>(
