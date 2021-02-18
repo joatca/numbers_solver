@@ -148,15 +148,17 @@ class _MainPageState extends State<MainPage> with TextUtil {
                 checked: gameState.scaryMode,
                 value: MainMenuOptions.changeMode,
                 child: Text(
-                  'Scary Mode',
+                  'Scary Numbers Mode',
                 ),
               ),
               PopupMenuItem<MainMenuOptions>(
                 enabled: true,
                 value: MainMenuOptions.about,
-                child: const Text(
-                  'About',
-                  textAlign: TextAlign.end,
+                child: const ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text(
+                    'About',
+                  ),
                 ),
               ),
             ],
