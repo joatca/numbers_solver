@@ -278,6 +278,7 @@ class _MainPageState extends State<MainPage> with TextUtil {
             maybeSolve();
           } else {
             gameState.removeSource(i);
+            _solutions.clear();
             _killSolver();
           }
         });
